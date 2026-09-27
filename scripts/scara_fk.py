@@ -21,7 +21,7 @@ import numpy as np
 # SCARA Active Joint Physical Limits (Min, Max) in radians / meters
 SCARA_JOINT_LIMITS = {
     'q1': (-0.73, 0.73),
-    'q2': (-0.83, 0.83),  
+    'q2': (-0.83, 0.83),  #This would be [0,0.83] later
     'q4': (-0.20, 0.00)
 }
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     print("=== SCARA Forward Kinematics Verification ===")
     
     # Test Case 1: Zero configuration [0.0, 0.0, 0.0]
-    q_zero = [0.0, 0.0, 0.0]
+    q_zero = [0.7, 0.8, -0.1]
     p_zero = scara_forward_kinematics(q_zero)
     print(f"TCP Position at Zero q={q_zero}:")
     print(f"  x: {p_zero[0]:.6f} m (Expected: 0.060 + 0.310 + 0.2545 = 0.6245)")
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     # Test Case 3: Batch input testing
     q_batch = np.array([
         [0.0, 0.0, 0.0],
-        [0.5, 0.3, -0.1]
+        [0.7, 0.8, -0.1]
     ])
     p_batch = scara_forward_kinematics(q_batch)
     print(f"\nBatch processing output shape: {p_batch.shape}")
