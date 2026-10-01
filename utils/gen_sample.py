@@ -72,6 +72,19 @@ def generate_ned_samples(num_samples: int, random_seed: int = None) -> np.ndarra
     return samples
 
 
+def validate_scara_dataset_numpy(samples: np.ndarray) -> bool:
+    """
+    verify the dataset 
+    """
+    q1, q2, q4 = samples[:, 0], samples[:, 1], samples[:, 2]
+    
+    valid_q1 = (q1 >= -0.73) & (q1 <= 0.73)
+    valid_q2 = (q2 >= 0.0) & (q2 <= 0.83)
+    valid_q4 = (q4 >= -0.17) & (q4 <= 0.0)
+    
+    return np.all(valid_q1 & valid_q2 & valid_q4)
+
+
 if __name__ == "__main__":
     print("=== Joint Sampling Module Test ===")
     
