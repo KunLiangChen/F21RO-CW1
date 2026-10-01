@@ -72,17 +72,58 @@ def generate_ned_samples(num_samples: int, random_seed: int = None) -> np.ndarra
     return samples
 
 
-def validate_scara_dataset_numpy(samples: np.ndarray) -> bool:
+def validate_scara_dataset(samples: np.ndarray) -> bool:
     """
-    verify the dataset 
+    Rapidly validates whether the entire SCARA dataset complies with all constraints.
+    Expected samples shape: (N, 3), corresponding to [q1, q2, q4].
     """
+    if samples.shape[1] != 3:
+        raise ValueError(f"Expected SCARA samples shape (N, 3), got {samples.shape}")
+
     q1, q2, q4 = samples[:, 0], samples[:, 1], samples[:, 2]
     
+    # Physical limits + Coursework positive value constraint + Webots failure zone avoidance
     valid_q1 = (q1 >= -0.73) & (q1 <= 0.73)
     valid_q2 = (q2 >= 0.0) & (q2 <= 0.83)
     valid_q4 = (q4 >= -0.17) & (q4 <= 0.0)
     
     return np.all(valid_q1 & valid_q2 & valid_q4)
+
+def validate_ned_dataset(samples: np.ndarray) -> bool:
+    """
+    Rapidly validates whether the entire Ned dataset complies with all constraints.
+    Expected samples shape: (N, 3), corresponding to [q1, q2, q3].
+    """
+    if samples.shape[1] != 3:
+        raise ValueError(f"Expected Ned samples shape (N, 3), got {samples.shape}")
+
+    q1, q2, q3 = samples[:, 0], samples[:, 1], samples[:, 2]
+    
+    # Physical limits + Coursework elbow-up forced positive constraint
+    valid_q1 = (q1 >= -2.8) & (q1 <= 2.8)
+    valid_q2 = (q2 >= -0.8) & (q2 <= 0.8)
+    valid_q3 = (q3 >= 0.0) & (q3 <= 1.3)
+    
+    return np.all(valid_q1 & valid_q2 & valid_q3)
+
+def get_invalid_indices(samples: np.ndarray, robot_type: str) -> np.ndarray:
+    """
+    Returns the row indices of all invalid samples for rapid debugging.
+    """
+    q1, q2, q3_or_q4 = samples[:, 0], samples[:, 1], samples[:, 2]
+    
+    if robot_type.lower() == 'scara':
+        valid = ((q1 >= -0.73) & (q1 <= 0.73) & 
+                 (q2 >= 0.0) & (q2 <= 0.83) & 
+                 (q3_or_q4 >= -0.17) & (q3_or_q4 <= 0.0))
+    elif robot_type.lower() == 'ned':
+        valid = ((q1 >= -2.8) & (q1 <= 2.8) & 
+                 (q2 >= -0.8) & (q2 <= 0.8) & 
+                 (q3_or_q4 >= 0.0) & (q3_or_q4 <= 1.3))
+    else:
+        raise ValueError("robot_type must be either 'scara' or 'ned'")
+        
+    return np.where(~valid)[0]
 
 
 if __name__ == "__main__":
