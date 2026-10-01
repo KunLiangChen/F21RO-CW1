@@ -4,7 +4,7 @@ from utils.scara_fk import scara_forward_kinematics
 from utils.ned_fk import ned_forward_kinematics
 
 """
-generate_dataset.py
+generate_rawdata.py
 
 Milestone 3 - Task B: FK Dataset Generation
 Responsible for generating the raw datasets by combining randomly sampled joint

@@ -1,5 +1,5 @@
 """
-sampling.py
+gen_sample.py
 
 Milestone 3 - Task A: Joint Sampling
 Responsible for generating valid and random joint configuration data for SCARA and Ned robotic arms. 
