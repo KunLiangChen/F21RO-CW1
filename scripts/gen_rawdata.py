@@ -1,7 +1,7 @@
 import numpy as np
-from utils.gen_sample import generate_scara_samples, generate_ned_samples
-from utils.scara_fk import scara_forward_kinematics
-from utils.ned_fk import ned_forward_kinematics
+from scripts.gen_sample import generate_scara_samples, generate_ned_samples
+from scripts.scara_fk import scara_forward_kinematics
+from scripts.ned_fk import ned_forward_kinematics
 
 """
 generate_rawdata.py

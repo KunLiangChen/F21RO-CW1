@@ -9,9 +9,9 @@ SCARA and Ned robotic arms.
 
 import os
 import numpy as np
-from utils.gen_rawdata import generate_raw_scara_data, generate_raw_ned_data
-from utils.gen_sample import validate_scara_dataset, validate_ned_dataset, get_invalid_indices
-from utils.preprocess import normalize_joints, split_train_val
+from scripts.gen_rawdata import generate_raw_scara_data, generate_raw_ned_data
+from scripts.gen_sample import validate_scara_dataset, validate_ned_dataset, get_invalid_indices
+from scripts.preprocess import normalize_joints, split_train_val
 
 # Configuration for Dataset Sizes
 # Smallest set must be at least 1000 samples before split.
