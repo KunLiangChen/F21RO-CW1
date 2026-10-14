@@ -59,14 +59,8 @@ def build_robot_datasets(robot_name: str, raw_data_func, header: str, seed: int 
     
     # Step 3: Normalize the train/val pool and test set using the train/val limits
     # This generates the normalisation JSON files automatically
-    train_val_norm = normalize_joints(train_val_raw, robot_name)
-    test_norm = normalize_joints(test_raw, f"{robot_name}_test_dummy") 
-    # (Note: In a strict ML pipeline, test data should be normalized using train limits, 
-    # but since our generated pool uniformly spans the absolute physical limits, 
-    # normalizing them simultaneously yields virtually identical, safe bounds).
-    
-    # Clean up the dummy test JSON as we only need the primary normalisation file
-    os.remove(f"normalisation/{robot_name}_test_dummy.json")
+    train_val_norm, train_val_bounds = normalize_joints(train_val_raw, robot_name)
+    test_norm, _ = normalize_joints(test_raw, robot_name, bounds=train_val_bounds) 
 
     # Step 4: Perform the 80/20 split on the Large pool
     large_train, large_val = split_train_val(train_val_norm, val_ratio=0.2, random_seed=seed)
