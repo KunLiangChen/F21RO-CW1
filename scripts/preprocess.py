@@ -11,7 +11,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from typing import Tuple
 
-def normalize_joints(raw_data: np.ndarray, robot_name: str, save_dir: str = "normalisation") -> np.ndarray:
+def normalize_joints(raw_data: np.ndarray, robot_name: str, bounds: tuple = None, save_dir: str = "normalisation") -> np.ndarray:
     """
     Normalizes the joint values (first 3 columns) of the raw dataset to [-1.0, 1.0].
     Saves the q_min and q_max parameters to a JSON file for future denormalization.
@@ -32,10 +32,24 @@ def normalize_joints(raw_data: np.ndarray, robot_name: str, save_dir: str = "nor
     
     # Extract joint values (first 3 columns)
     joints = raw_data[:, :3]
-    
-    # Calculate min and max for each joint across the entire dataset
-    q_min = np.min(joints, axis=0)
-    q_max = np.max(joints, axis=0)
+    if bounds is None:
+        # Calculate min and max for each joint across the entire dataset
+        q_min = np.min(joints, axis=0)
+        q_max = np.max(joints, axis=0)
+        # Save parameters to JSON
+        json_path = os.path.join(save_dir, f"{robot_name.lower()}.json")
+        params = {
+            "robot": robot_name.lower(),
+            "q_min": q_min.tolist(),
+            "q_max": q_max.tolist()
+        }
+        
+        with open(json_path, 'w') as f:
+            json.dump(params, f, indent=4)
+            
+        print(f"[{robot_name.upper()}] Normalization parameters saved to {json_path}")
+    else:
+        q_min, q_max = bounds
     
     # Apply normalization formula: q_norm = 2 * (q - q_min) / (q_max - q_min) - 1
     # Adding a tiny epsilon to prevent division by zero in edge cases
@@ -46,20 +60,8 @@ def normalize_joints(raw_data: np.ndarray, robot_name: str, save_dir: str = "nor
     processed_data = np.copy(raw_data)
     processed_data[:, :3] = joints_norm
     
-    # Save parameters to JSON
-    json_path = os.path.join(save_dir, f"{robot_name.lower()}.json")
-    params = {
-        "robot": robot_name.lower(),
-        "q_min": q_min.tolist(),
-        "q_max": q_max.tolist()
-    }
     
-    with open(json_path, 'w') as f:
-        json.dump(params, f, indent=4)
-        
-    print(f"[{robot_name.upper()}] Normalization parameters saved to {json_path}")
-    
-    return processed_data
+    return processed_data, (q_min, q_max)
 
 def split_train_val(dataset: np.ndarray, val_ratio: float = 0.2, random_seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     """
