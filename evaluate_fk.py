@@ -68,7 +68,8 @@ def denormalize_joints_batch(q_norm_batch, q_min, q_max):
     Returns:
         np.ndarray: Physical joint values of shape (N, 3).
     """
-    return q_min + ((q_norm_batch + 1.0) / 2.0) * (q_max - q_min)
+    q_norm_clamped = np.clip(q_norm_batch, -1.0, 1.0)
+    return q_min + ((q_norm_clamped + 1.0) / 2.0) * (q_max - q_min)
 
 
 def calculate_wrapped_angular_error(theta_true, theta_pred):
