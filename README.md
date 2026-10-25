@@ -21,3 +21,20 @@ python evaluate_fk_webots.py generate   # 8 corner + 200 random joint sets per a
 # run worlds/scara.wbt and worlds/articulated.wbt once each in Webots (controllers write logs/tcp_measured_*.csv)
 python evaluate_fk_webots.py report     # mean/std/max position error, saved to logs/fk_vs_webots.json
 ```
+
+
+## Task 2: sampled joint ranges
+
+The joints are sampled uniformly from ranges that are narrower than the motor limits
+(`scripts/gen_sample.py`):
+
+| Joint | Sampled range | Motor limit | Why |
+|---|---|---|---|
+| SCARA q2 (`arm_motor`) | [0, 0.83] rad | [-0.83, 0.83] | elbow-up: one joint solution per TCP position |
+| Ned q3 (`joint_3`) | [0, 1.3] rad | [-1.5, 1.3] | elbow-up, same reason |
+| SCARA q4 (`shaft_linear_motor`) | [-0.17, 0] m | [-0.2, 0] | the shaft touches the Webots floor below about -0.173 m |
+
+All other joints use their full motor range. Poses with the TCP close to the floor are
+not removed: there the Ned hand can touch the floor too, which adds up to about 8 mm
+between Webots and FK (measured in Task 1.C).
+
