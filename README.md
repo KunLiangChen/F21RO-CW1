@@ -198,6 +198,8 @@ simulation and drag the red sphere (`DEF TARGET`) with the mouse.
 Every simulation step the controller feeds the sphere position (ARM frame) to the trained
 network (`MODEL_SCALE` in the controller selects small, medium or large) and commands the joints.
 
+- The 3D view shows the model, the target position, the tracking error and whether the target is
+  reachable (green) or not (red), so a failed target is visible in a screen recording.
 - The prediction is checked with our FK before it is used. If it does not reach the target within
   4 cm, the sphere is outside what the network learned (for example out of reach) and the arm keeps
   its last good pose instead of swinging to an extrapolated one; the console then prints
