@@ -161,7 +161,8 @@ Selected hyperparameters and validation errors (normalised joint space):
 python scripts/evaluate_fk.py     # all 500 test samples per arm, with FK; no simulator needed
 ```
 
-It prints the 6 position-error and 18 joint-error statistics (mean and std) and saves them to
+It prints the 6 position-error and 18 joint-error statistics (mean and std), plus the position error
+of the first 100 test samples (the ones of Task 4.B, for a comparison on the same inputs), and saves them to
 `logs/eval_task4a_results.json`. The error of a revolute joint is the absolute value of the
 wrapped angular difference, so errors of opposite sign do not cancel in the mean; the error of the
 prismatic SCARA joint is the squared difference in m².
@@ -178,17 +179,17 @@ the measured TCP with the test-set position. The results of both arms are merged
 
 Position error in mm (mean ± std), network trained on the training sets of the same size:
 
-| Model | Arm | 4.A: FK, 500 samples | 4.B: Webots, 100 samples |
-|---|---|---|---|
-| small | Ned | 9.73 ± 6.72 | 9.92 ± 8.01 |
-| small | SCARA | 4.86 ± 3.30 | 5.02 ± 3.62 |
-| medium | Ned | 6.96 ± 3.66 | 7.54 ± 3.78 |
-| medium | SCARA | 3.30 ± 2.00 | 3.41 ± 2.04 |
-| large | Ned | 5.44 ± 4.00 | 5.43 ± 3.89 |
-| large | SCARA | 2.80 ± 1.57 | 2.75 ± 1.47 |
+| Model | Arm | 4.A: FK, 500 samples | 4.A: FK, first 100 | 4.B: Webots, first 100 |
+|---|---|---|---|---|
+| small | Ned | 9.73 ± 6.72 | 10.00 ± 8.01 | 9.92 ± 8.01 |
+| small | SCARA | 4.86 ± 3.30 | 4.99 ± 3.59 | 5.02 ± 3.62 |
+| medium | Ned | 6.96 ± 3.66 | 7.44 ± 3.79 | 7.54 ± 3.78 |
+| medium | SCARA | 3.30 ± 2.00 | 3.35 ± 2.05 | 3.41 ± 2.04 |
+| large | Ned | 5.44 ± 4.00 | 5.37 ± 3.85 | 5.43 ± 3.89 |
+| large | SCARA | 2.80 ± 1.57 | 2.77 ± 1.50 | 2.75 ± 1.47 |
 
-For the Ned, 7 of the first 100 test poses have the TCP below 0.12 m, where the hand touches the
-floor in Webots (see Task 1.C).
+On the same 100 samples, 4.A and 4.B differ by at most 0.1 mm on average. For the Ned, 7 of these
+100 test poses have the TCP below 0.12 m, where the hand touches the floor in Webots (see Task 1.C).
 
 ## Task 5 demo: the network follows the red target sphere
 
