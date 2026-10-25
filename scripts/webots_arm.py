@@ -56,6 +56,12 @@ def find_tcp_node(robot):
     raise RuntimeError("Could not find the TCP node (DEF TCP or ARM.tcpSlot).")
 
 
+def position_in_arm_frame(node, arm):
+    """Position (x, y, z) of a node in the ARM frame: translation of its 4x4 pose relative to ARM."""
+    pose = node.getPose(arm)
+    return np.array([pose[3], pose[7], pose[11]])
+
+
 class JointProbe:
     """Commands the 3 active joints of one arm and measures the resulting TCP."""
 
@@ -125,8 +131,7 @@ class JointProbe:
 
     def measure_tcp(self):
         """TCP position in the ARM frame: translation part of the 4x4 pose of TCP relative to ARM."""
-        pose = self.tcp.getPose(self.arm)
-        return np.array([pose[3], pose[7], pose[11]])
+        return position_in_arm_frame(self.tcp, self.arm)
 
 
 def detect_arm(robot):
