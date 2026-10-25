@@ -1,18 +1,13 @@
 """
-Real-time ANN-based Target Tracking Controller for Task 5 Video Demonstration.
+Task 5 demo: the trained network moves the arm to the red target sphere.
 
-This controller replaces analytical IK with the trained Artificial Neural Network (ANN) model.
-It tracks the red target sphere in real-time inside Webots for both Niryo Ned and Epson SCARA.
-
-Workflow per step:
-    1. Reads TARGET sphere relative (x, y, z) position in the ARM coordinate frame.
-    2. Builds input feature vector [is_scara, is_ned, x, y, z].
-    3. Predicts normalized joint values using the trained ANN model (.pkl).
-    4. De-normalizes predictions to physical joint ranges and clamps bounds.
-    5. Commands motors and logs real-time position error for video recording.
-
-Coursework Reference:
-    F20/21RO Intelligent Robotics - Coursework 1 Task 3, 4 & 5
+Supervisor controller for worlds/articulated.wbt (Ned) and worlds/scara.wbt (SCARA);
+the arm's controller has to be set to nn_sphere_tracker. In every simulation step:
+    1. Read the TARGET sphere position in the ARM frame.
+    2. Build the network input [is_scara, is_ned, x, y, z].
+    3. Predict the normalised joints with the model selected by MODEL_SCALE.
+    4. De-normalise (clipped to the bounds) and command the motors.
+    5. Periodically print the measured TCP position and tracking error.
 """
 
 import os
@@ -23,7 +18,7 @@ import pickle
 import numpy as np
 from controller import Supervisor
 
-# Ensure project root is accessible for relative imports
+# Make the project root importable
 CONTROLLER_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CONTROLLER_DIR, "..", ".."))
 sys.path.append(PROJECT_ROOT)

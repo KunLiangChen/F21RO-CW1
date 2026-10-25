@@ -1,13 +1,14 @@
 """
-Task 4.B: Webots Supervisor Evaluation Controller.
+Task 4.B: evaluates the three trained networks in Webots.
 
-This supervisor controller automatically identifies the active robot in Webots 
-('articulated.wbt' or 'scara.wbt'), retrieves the TCP node using the official 
-two-stage lookup algorithm from 'tcp_pose.py', and calculates the REAL physical 
-simulation position errors across Small, Medium, and Large models.
+Supervisor controller for the arm in the open world (worlds/articulated.wbt or
+worlds/scara.wbt; the arm's controller has to be set to evaluate_webots). For the first
+100 test samples of that arm and each model size it predicts the joints, commands the
+motors, waits, and compares the TCP position measured by the supervisor with the
+test-set position.
 
-Coursework Reference:
-    F20/21RO Intelligent Robotics - Coursework 1 Task 4.B
+Mean and std of the position error are merged into logs/eval_task4b_results.json,
+so run it once per world.
 """
 
 import os
@@ -17,7 +18,7 @@ import pickle
 import numpy as np
 from controller import Supervisor
 
-# Ensure project root directory is accessible for relative imports
+# Make the project root importable
 CONTROLLER_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CONTROLLER_DIR, "..", ".."))
 sys.path.append(PROJECT_ROOT)
@@ -27,20 +28,18 @@ from scripts.dataset_loader import load_csv_dataset, prepare_robot_features
 
 def get_official_tcp_node(supervisor):
     """
-    Retrieves the TCP node using the exact logic from coursework 'tcp_pose.py'.
-    
-    1. First tries global DEF "TCP".
-    2. If that fails, retrieves the first node inside ARM.tcpSlot.
-    
+    Finds the TCP node with the lookup of the course tcp_pose.py: the global DEF "TCP"
+    first, otherwise the first node in ARM.tcpSlot.
+
     Returns:
-        Node: Webots TCP Node object, or None if not found.
+        Node: The TCP node, or None if not found.
     """
-    # 1. Try global DEF lookup
+    # 1. Global DEF
     tcp = supervisor.getFromDef("TCP")
     if tcp is not None:
         return tcp
 
-    # 2. Try retrieving from ARM.tcpSlot
+    # 2. First node of ARM.tcpSlot
     arm = supervisor.getFromDef("ARM")
     if arm is not None:
         tcp_slot = arm.getField("tcpSlot")
@@ -52,8 +51,8 @@ def get_official_tcp_node(supervisor):
 
 def detect_active_robot(supervisor):
     """
-    Detects which robot is present in the current active Webots world file.
-    
+    Detects which arm the open world contains, from its motor names.
+
     Returns:
         str: "Ned" or "SCARA"
     """
@@ -67,7 +66,7 @@ def detect_active_robot(supervisor):
 
 def denormalize_joints_batch(q_norm_batch, q_min, q_max):
     """
-    De-normalizes [-1.0, 1.0] bounds back to physical units with domain clamping.
+    De-normalises [-1.0, 1.0] back to rad / m; the input is clipped to [-1.0, 1.0] first.
     """
     q_norm_clamped = np.clip(q_norm_batch, -1.0, 1.0)
     return q_min + ((q_norm_clamped + 1.0) / 2.0) * (q_max - q_min)
@@ -75,26 +74,30 @@ def denormalize_joints_batch(q_norm_batch, q_min, q_max):
 
 def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
     """
-    Runs Task 4.B simulation for the active robot across Small, Medium, and Large models.
+    Runs the Task 4.B simulation for the arm in the open world, for all three models.
+
+    Returns:
+        dict: {size: {"mean": ..., "std": ...}} of the position error in metres,
+              or None if a model file is missing.
     """
     is_scara = (robot_name == "SCARA")
     models_dir = os.path.join(PROJECT_ROOT, "models")
     datasets_dir = os.path.join(PROJECT_ROOT, "datasets")
     norm_dir = os.path.join(PROJECT_ROOT, "normalisation")
 
-    # 1. Load Normalisation Config
+    # 1. Normalisation bounds
     config_file = "scara.json" if is_scara else "ned.json"
     with open(os.path.join(norm_dir, config_file), 'r', encoding='utf-8') as f:
         norm_conf = json.load(f)
     q_min = np.array(norm_conf["q_min"], dtype=np.float64)
     q_max = np.array(norm_conf["q_max"], dtype=np.float64)
 
-    # 2. Load First 100 Test Samples
+    # 2. First 100 test samples (the coursework reduced test set)
     test_csv_path = os.path.join(datasets_dir, "scara" if is_scara else "ned", "test.csv")
     test_pos_all, _ = load_csv_dataset(test_csv_path)
-    test_pos_100 = test_pos_all[:100]  # Strictly evaluate first 100 samples[cite: 13]
+    test_pos_100 = test_pos_all[:100]
 
-    # 3. Get Motor Devices
+    # 3. Motors of the three active joints
     if is_scara:
         m1 = supervisor.getDevice("base_arm_motor")
         m2 = supervisor.getDevice("arm_motor")
@@ -106,7 +109,7 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
 
     motors = [m1, m2, m3]
 
-    # 4. Get TCP Node using Official Lookup
+    # 4. TCP node
     tcp_node = get_official_tcp_node(supervisor)
     if tcp_node is None:
         raise RuntimeError(
@@ -116,7 +119,7 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
 
     print(f"[Webots 4.B] TCP Node successfully hooked for {robot_name}.")
 
-    SETTLE_STEPS = 35  # Simulation steps to wait for mechanical settling[cite: 9]
+    SETTLE_STEPS = 35  # simulation steps to wait for the arm to settle
     scales = ["small", "medium", "large"]
     robot_results = {}
 
@@ -129,7 +132,7 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
         with open(model_path, 'rb') as f:
             model = pickle.load(f)
 
-        # Predict normalized joints and de-normalize to physical ranges
+        # Predict the normalised joints and de-normalise them
         X_test_100 = prepare_robot_features(test_pos_100, is_scara=is_scara)
         q_norm_pred_100 = model.predict(X_test_100)
         q_pred_phys_100 = denormalize_joints_batch(q_norm_pred_100, q_min, q_max)
@@ -141,19 +144,19 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
             target_joints = q_pred_phys_100[i]
             true_pos = test_pos_100[i]
 
-            # Command Motors
+            # Command the motors
             for j in range(3):
                 motors[j].setPosition(float(target_joints[j]))
 
-            # Step simulation for motors to settle
+            # Let the motors settle
             for _ in range(SETTLE_STEPS):
                 if supervisor.step(time_step) == -1:
                     break
 
-            # Read TRUE simulated TCP position from Webots
+            # TCP position measured by the supervisor
             sim_pos = np.array(tcp_node.getPosition(), dtype=np.float64)
 
-            # Compute Euclidean Position Error ||(x,y,z)_true - (x,y,z)_sim||
+            # Position error: Euclidean distance to the test-set position
             pos_err = np.linalg.norm(true_pos - sim_pos)
             position_errors.append(pos_err)
 
@@ -189,7 +192,7 @@ def main():
                 except json.JSONDecodeError:
                     existing_data = {}
 
-        # Merge active robot results into JSON
+        # Merge this arm's results into the JSON file
         for scale, stats in robot_results.items():
             if scale not in existing_data:
                 existing_data[scale] = {}
@@ -201,7 +204,7 @@ def main():
         print(f"\n[Updated] Real 4.B simulation errors for {active_robot} exported to: logs/eval_task4b_results.json")
         print("========================================================\n")
 
-    # Automatically pause simulation upon completion
+    # Pause the simulation when finished
     supervisor.simulationSetMode(Supervisor.SIMULATION_MODE_PAUSE)
 
 
