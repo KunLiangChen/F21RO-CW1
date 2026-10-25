@@ -33,13 +33,25 @@ trained models, so that interpreter must be the one where `requirements.txt` was
 | `scripts/dataset_loader.py`, `scripts/train_ann.py` | Task 3 training |
 | `scripts/evaluate_fk.py` | Task 4.A evaluation with FK |
 | `controllers/evaluate_webots/` | Task 4.B evaluation in Webots |
-| `controllers/nn_sphere_tracker/` | demo: the network moves the arm to the red target sphere |
+| `controllers/nn_sphere_tracker/` | Task 5 demo: the network moves the arm to the red target sphere |
 | `models/`, `logs/log_*.json`, `logs/eval_task4*.json` | trained models, training logs and evaluation results (committed) |
 | `worlds/`, `protos/` | Webots worlds and the Ned robot from the course repository |
 
 Order of the pipeline: `python scripts/build_datasets.py` (datasets), then `python scripts/train_ann.py`
 (models). Both outputs are already committed, so the scripts only have to be rerun to
 reproduce them.
+
+## Controllers in the Webots worlds
+
+The controller of `DEF ARM` decides what runs when a world is opened and started. Both worlds start
+with the Task 5 demo; to run another one, select `DEF ARM` in the scene tree, change `controller` and
+reload the world.
+
+| Controller | Task |
+|---|---|
+| `nn_sphere_tracker` (default) | Task 5 demo: the network follows the red sphere |
+| `scara_joint_ctrl` (`worlds/scara.wbt`), `ned_joint_ctrl` (`worlds/articulated.wbt`) | Task 1.A and Task 1.C |
+| `evaluate_webots` | Task 4.B |
 
 ## Task 1.A: joint controllers (Webots)
 
@@ -48,10 +60,6 @@ joints, waits until the position sensors settle, then reads the TCP pose (ARM fr
 
 - SCARA: open `worlds/scara.wbt` and set the controller of `DEF ARM` to `scara_joint_ctrl`
 - Ned: open `worlds/articulated.wbt` and set the controller of `DEF ARM` to `ned_joint_ctrl`
-
-Both worlds start with the Task 4.B controller `evaluate_webots`; change it in the scene tree
-(`DEF ARM` > `controller`) to run the controllers of Task 1.A / 1.C, or to
-`nn_sphere_tracker` for the demo.
 
 Joint values are read from `logs/joint_input_scara.csv` / `logs/joint_input_ned.csv`
 (rows of `q1,q2,q4` / `q1,q2,q3`, physical units, optional header line). If the file is
@@ -147,22 +155,26 @@ Selected hyperparameters and validation errors (normalised joint space):
 | large | 16000 / 4000 | (256, 256, 128) | relu | 0.001 | 0.001 | 8.53e-04 | 1.30e-02 |
 
 
-## Task 4: evaluation
+## Task 4.A: evaluation with FK
 
 ```bash
-python scripts/evaluate_fk.py     # 4.A: all 500 test samples per arm, with FK; no simulator needed
+python scripts/evaluate_fk.py     # all 500 test samples per arm, with FK; no simulator needed
 ```
 
-4.A prints the 6 position-error and 18 joint-error statistics (mean and std) and saves them to
+It prints the 6 position-error and 18 joint-error statistics (mean and std) and saves them to
 `logs/eval_task4a_results.json`. The error of a revolute joint is the absolute value of the
 wrapped angular difference, so errors of opposite sign do not cancel in the mean; the error of the
 prismatic SCARA joint is the squared difference in m².
 
-4.B: open `worlds/scara.wbt` and `worlds/articulated.wbt` one after the other (the controller of
-`DEF ARM` is `evaluate_webots`) and run the simulation. For each model it moves the arm to the joint
+## Task 4.B: evaluation in Webots
+
+Open `worlds/scara.wbt` and `worlds/articulated.wbt` one after the other, set the controller of
+`DEF ARM` to `evaluate_webots` and run the simulation. For each model it moves the arm to the joint
 values predicted for the first 100 test samples, waits until the joints have settled, and compares
 the measured TCP with the test-set position. The results of both arms are merged into
 `logs/eval_task4b_results.json`, and the simulation pauses when it is done.
+
+### Results of Task 4.A and Task 4.B
 
 Position error in mm (mean ± std), network trained on the training sets of the same size:
 
@@ -178,10 +190,10 @@ Position error in mm (mean ± std), network trained on the training sets of the 
 For the Ned, 7 of the first 100 test poses have the TCP below 0.12 m, where the hand touches the
 floor in Webots (see Task 1.C).
 
-## Demo: the network follows the red target sphere
+## Task 5 demo: the network follows the red target sphere
 
-Open `worlds/scara.wbt` or `worlds/articulated.wbt`, set the controller of `DEF ARM` to
-`nn_sphere_tracker`, run the simulation and drag the red sphere (`DEF TARGET`) with the mouse.
+Open `worlds/scara.wbt` or `worlds/articulated.wbt` (they start with `nn_sphere_tracker`), run the
+simulation and drag the red sphere (`DEF TARGET`) with the mouse.
 Every simulation step the controller feeds the sphere position (ARM frame) to the trained
 network (`MODEL_SCALE` in the controller selects small, medium or large) and commands the joints.
 
