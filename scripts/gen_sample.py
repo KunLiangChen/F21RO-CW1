@@ -3,20 +3,23 @@ Task 2: joint sampling for the SCARA and Ned arms.
 
 Draws uniformly random joint values inside the allowed ranges and validates them.
 No forward kinematics here; only joint space constraints.
+
+Elbow-up restriction (one joint solution per TCP position): SCARA q2 and Ned q3 are
+sampled from positive values only.
 """
 
 import numpy as np
 
 def generate_scara_samples(num_samples: int, random_seed: int = None) -> np.ndarray:
     """
-    Generate random joint samples for the SCARA robotic arm.
-    
-    param:
-        num_samples (int): 
-        random_seed (int, optional):
-        
-    return:
-        np.ndarray: 2D-array shaped (num_samples, 3), every line is [q1, q2, q4]
+    Generates random joint samples for the SCARA arm.
+
+    Args:
+        num_samples (int): Number of joint vectors to draw.
+        random_seed (int, optional): Seed for reproducibility.
+
+    Returns:
+        np.ndarray: Array of shape (num_samples, 3), every row is [q1, q2, q4].
     """
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -44,14 +47,14 @@ def generate_scara_samples(num_samples: int, random_seed: int = None) -> np.ndar
 
 def generate_ned_samples(num_samples: int, random_seed: int = None) -> np.ndarray:
     """
-    Generate random joint samples for the SCARA robotic arm.
-    
-    param:
-        num_samples (int):
-        random_seed (int, optional): 
-        
-    return:
-        np.ndarray: 2D-array shaped (num_samples, 3), every line is [q1, q2, q3]
+    Generates random joint samples for the Ned arm.
+
+    Args:
+        num_samples (int): Number of joint vectors to draw.
+        random_seed (int, optional): Seed for reproducibility.
+
+    Returns:
+        np.ndarray: Array of shape (num_samples, 3), every row is [q1, q2, q3].
     """
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -76,15 +79,20 @@ def generate_ned_samples(num_samples: int, random_seed: int = None) -> np.ndarra
 
 def validate_scara_dataset(samples: np.ndarray) -> bool:
     """
-    Rapidly validates whether the entire SCARA dataset complies with all constraints.
-    Expected samples shape: (N, 3), corresponding to [q1, q2, q4].
+    Checks that every SCARA sample complies with all constraints.
+
+    Args:
+        samples (np.ndarray): Joint samples of shape (N, 3), columns [q1, q2, q4].
+
+    Returns:
+        bool: True if all samples are valid.
     """
     if samples.shape[1] != 3:
         raise ValueError(f"Expected SCARA samples shape (N, 3), got {samples.shape}")
 
     q1, q2, q4 = samples[:, 0], samples[:, 1], samples[:, 2]
     
-    # Physical limits + Coursework positive value constraint + Webots failure zone avoidance
+    # Motor limits + elbow-up (q2 >= 0) + Webots q4 restriction
     valid_q1 = (q1 >= -0.73) & (q1 <= 0.73)
     valid_q2 = (q2 >= 0.0) & (q2 <= 0.83)
     valid_q4 = (q4 >= -0.17) & (q4 <= 0.0)
@@ -93,15 +101,20 @@ def validate_scara_dataset(samples: np.ndarray) -> bool:
 
 def validate_ned_dataset(samples: np.ndarray) -> bool:
     """
-    Rapidly validates whether the entire Ned dataset complies with all constraints.
-    Expected samples shape: (N, 3), corresponding to [q1, q2, q3].
+    Checks that every Ned sample complies with all constraints.
+
+    Args:
+        samples (np.ndarray): Joint samples of shape (N, 3), columns [q1, q2, q3].
+
+    Returns:
+        bool: True if all samples are valid.
     """
     if samples.shape[1] != 3:
         raise ValueError(f"Expected Ned samples shape (N, 3), got {samples.shape}")
 
     q1, q2, q3 = samples[:, 0], samples[:, 1], samples[:, 2]
     
-    # Physical limits + Coursework elbow-up forced positive constraint
+    # Motor limits + elbow-up (q3 >= 0)
     valid_q1 = (q1 >= -2.8) & (q1 <= 2.8)
     valid_q2 = (q2 >= -0.8) & (q2 <= 0.8)
     valid_q3 = (q3 >= 0.0) & (q3 <= 1.3)
@@ -110,7 +123,11 @@ def validate_ned_dataset(samples: np.ndarray) -> bool:
 
 def get_invalid_indices(samples: np.ndarray, robot_type: str) -> np.ndarray:
     """
-    Returns the row indices of all invalid samples for rapid debugging.
+    Returns the row indices of all invalid samples, for debugging.
+
+    Args:
+        samples (np.ndarray): Joint samples of shape (N, 3).
+        robot_type (str): 'scara' or 'ned'.
     """
     q1, q2, q3_or_q4 = samples[:, 0], samples[:, 1], samples[:, 2]
     

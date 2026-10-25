@@ -11,7 +11,9 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from typing import Tuple
 
-# Define exact theoretical physical bounds per coursework specifications
+# Normalisation bounds = the ranges the joints are sampled from (see gen_sample.py),
+# not the full motor limits: elbow-up keeps SCARA q2 / Ned q3 >= 0, and SCARA q4 stops
+# at -0.17 instead of -0.2 because of the Webots restriction.
 # SCARA: q1 in [-0.73, 0.73], q2 in [0.0, 0.83], q4 in [-0.17, 0.0]
 # Ned:   q1 in [-2.8, 2.8],   q2 in [-0.8, 0.8],  q3 in [0.0, 1.3]
 THEORETICAL_BOUNDS = {
@@ -32,19 +34,20 @@ def normalize_joints(
     save_dir: str = "normalisation"
 ) -> Tuple[np.ndarray, tuple]:
     """
-    Normalizes the joint values (first 3 columns) of the raw dataset to [-1.0, 1.0]
-    using theoretical physical bounds.
-    
-    Saves the exact physical q_min and q_max parameters to JSON for future denormalization.
-    
+    Normalises the joint values (first 3 columns) of the raw dataset to [-1.0, 1.0].
+
+    With bounds=None the per-robot bounds in THEORETICAL_BOUNDS are used and written to
+    JSON for later de-normalisation. Pass the returned bounds when normalising the test
+    set, so that it uses exactly the same mapping as the training data.
+
     Args:
-        raw_data (np.ndarray): Raw dataset matrix of shape (N, 6) -> [q1, q2, q3/q4, x, y, z].
+        raw_data (np.ndarray): Raw dataset of shape (N, 6), columns [q1, q2, q3/q4, x, y, z].
         robot_name (str): Robot identifier ('scara' or 'ned').
-        bounds (tuple, optional): Explicit (q_min, q_max) tuple. If None, uses theoretical physical bounds.
-        save_dir (str): Directory to store JSON configuration.
-        
+        bounds (tuple, optional): Explicit (q_min, q_max); nothing is saved if given.
+        save_dir (str): Directory to store the JSON file.
+
     Returns:
-        Tuple[np.ndarray, tuple]: (Processed normalized dataset, (q_min, q_max) bounds tuple)
+        Tuple[np.ndarray, tuple]: (normalised dataset, (q_min, q_max))
     """
     if raw_data.shape[1] != 6:
         raise ValueError(f"Expected raw_data shape (N, 6), got {raw_data.shape}")
@@ -52,16 +55,16 @@ def normalize_joints(
     os.makedirs(save_dir, exist_ok=True)
     robot_key = robot_name.lower()
 
-    # Determine normalization bounds
+    # Determine the normalisation bounds
     if bounds is None:
         if robot_key in THEORETICAL_BOUNDS:
             q_min, q_max = THEORETICAL_BOUNDS[robot_key]
         else:
-            # Fallback to dataset stats only if an unmapped robot is passed
+            # Unknown robot: fall back to the min/max of the data
             joints_raw = raw_data[:, :3]
             q_min, q_max = np.min(joints_raw, axis=0), np.max(joints_raw, axis=0)
 
-        # Save exact physical parameters to JSON configuration
+        # Save the bounds for de-normalisation
         json_path = os.path.join(save_dir, f"{robot_key}.json")
         params = {
             "robot": robot_key,
@@ -76,15 +79,15 @@ def normalize_joints(
     else:
         q_min, q_max = bounds
 
-    # Apply Normalization Formula: q_norm = 2 * (q - q_min) / (q_max - q_min) - 1.0
+    # Normalisation: q_norm = 2 * (q - q_min) / (q_max - q_min) - 1.0
     joints = raw_data[:, :3]
     epsilon = 1e-10
     joints_norm = 2.0 * (joints - q_min) / (q_max - q_min + epsilon) - 1.0
 
-    # Safety clamp strictly within [-1.0, 1.0] to prevent floating point boundary noise
+    # Clip floating point noise at the boundaries
     joints_norm = np.clip(joints_norm, -1.0, 1.0)
 
-    # Reconstruct normalized output matrix
+    # Only the joint columns change; x, y, z stay in metres
     processed_data = np.copy(raw_data)
     processed_data[:, :3] = joints_norm
 
@@ -92,17 +95,17 @@ def normalize_joints(
 
 def split_train_val(dataset: np.ndarray, val_ratio: float = 0.2, random_seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Splits the dataset into training and validation sets using a fixed random seed.
-    
+    Splits the dataset into training and validation sets with a fixed random seed.
+
     Args:
-        dataset (np.ndarray): The normalized dataset.
-        val_ratio (float): The proportion of the dataset to include in the validation split (~80/20).
-        random_seed (int): Fixed seed to ensure reproducible splits across the group.
-        
+        dataset (np.ndarray): The normalised dataset.
+        val_ratio (float): Fraction used for validation (0.2 gives the ~80/20 split).
+        random_seed (int): Fixed seed so that every group member gets the same split.
+
     Returns:
         Tuple[np.ndarray, np.ndarray]: (train_data, validation_data)
     """
-    # Use scikit-learn for robust, randomized splitting with a fixed seed
+    # scikit-learn shuffles and splits reproducibly
     train_data, val_data = train_test_split(
         dataset, 
         test_size=val_ratio, 
@@ -113,7 +116,7 @@ def split_train_val(dataset: np.ndarray, val_ratio: float = 0.2, random_seed: in
     return train_data, val_data
 
 if __name__ == "__main__":
-    # --- Task C Unit Verification ---
+    # Quick self-check
     print("=== Preprocessing & Normalisation Test ===")
     
     # Create dummy raw data: 100 samples, 6 columns [q1, q2, q3, x, y, z]
