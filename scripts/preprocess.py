@@ -93,6 +93,24 @@ def normalize_joints(
 
     return processed_data, (q_min, q_max)
 
+def denormalize_joints(q_norm: np.ndarray, q_min: np.ndarray, q_max: np.ndarray) -> np.ndarray:
+    """
+    De-normalises joint values from [-1.0, 1.0] back to rad / m (inverse of normalize_joints):
+    q = q_min + ((q_norm + 1) / 2) * (q_max - q_min).
+
+    The network output is not bounded, so it is clipped to [-1.0, 1.0] first.
+
+    Args:
+        q_norm (np.ndarray): Normalised joint values, shape (N, 3) or (3,).
+        q_min (np.ndarray): Lower normalisation bounds (3,).
+        q_max (np.ndarray): Upper normalisation bounds (3,).
+
+    Returns:
+        np.ndarray: Joint values in rad / m, same shape as q_norm.
+    """
+    return q_min + ((np.clip(q_norm, -1.0, 1.0) + 1.0) / 2.0) * (q_max - q_min)
+
+
 def split_train_val(dataset: np.ndarray, val_ratio: float = 0.2, random_seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     """
     Splits the dataset into training and validation sets with a fixed random seed.

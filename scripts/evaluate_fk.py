@@ -29,6 +29,7 @@ sys.path.append(PROJECT_ROOT)
 from scripts.ned_fk import ned_forward_kinematics
 from scripts.scara_fk import scara_forward_kinematics
 from scripts.dataset_loader import load_csv_dataset, prepare_robot_features
+from scripts.preprocess import denormalize_joints
 
 
 def load_normalisation_config(json_path):
@@ -53,23 +54,6 @@ def load_normalisation_config(json_path):
     q_min = np.array(config["q_min"], dtype=np.float64)
     q_max = np.array(config["q_max"], dtype=np.float64)
     return q_min, q_max
-
-
-def denormalize_joints_batch(q_norm_batch, q_min, q_max):
-    """
-    De-normalises joint values from [-1.0, 1.0] back to rad / m (inputs are clipped first):
-    q = q_min + ((q_norm + 1) / 2) * (q_max - q_min)
-
-    Args:
-        q_norm_batch (np.ndarray): Normalized joint array of shape (N, 3).
-        q_min (np.ndarray): Lower normalisation bounds (3,).
-        q_max (np.ndarray): Upper normalisation bounds (3,).
-
-    Returns:
-        np.ndarray: Physical joint values of shape (N, 3).
-    """
-    q_norm_clamped = np.clip(q_norm_batch, -1.0, 1.0)
-    return q_min + ((q_norm_clamped + 1.0) / 2.0) * (q_max - q_min)
 
 
 def calculate_wrapped_angular_error(theta_true, theta_pred):
@@ -110,8 +94,8 @@ def evaluate_model_on_robot(model, test_pos, test_joints_norm, is_scara, q_min, 
     q_norm_pred = model.predict(X_test)
 
     # 3. De-normalise to rad / m
-    q_true_phys = denormalize_joints_batch(test_joints_norm, q_min, q_max)
-    q_pred_phys = denormalize_joints_batch(q_norm_pred, q_min, q_max)
+    q_true_phys = denormalize_joints(test_joints_norm, q_min, q_max)
+    q_pred_phys = denormalize_joints(q_norm_pred, q_min, q_max)
 
     # 4. FK of the predicted joints gives the position the arm would reach
     fk_func = scara_forward_kinematics if is_scara else ned_forward_kinematics

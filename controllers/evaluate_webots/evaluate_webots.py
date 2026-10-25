@@ -25,15 +25,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CONTROLLER_DIR, "..", ".."))
 sys.path.append(PROJECT_ROOT)
 
 from scripts.dataset_loader import load_csv_dataset, prepare_robot_features
+from scripts.preprocess import denormalize_joints
 from scripts.webots_arm import detect_arm, make_probe
-
-
-def denormalize_joints_batch(q_norm_batch, q_min, q_max):
-    """
-    De-normalises [-1.0, 1.0] back to rad / m; the input is clipped to [-1.0, 1.0] first.
-    """
-    q_norm_clamped = np.clip(q_norm_batch, -1.0, 1.0)
-    return q_min + ((q_norm_clamped + 1.0) / 2.0) * (q_max - q_min)
 
 
 def run_evaluation_for_active_robot(supervisor, robot_name):
@@ -80,7 +73,7 @@ def run_evaluation_for_active_robot(supervisor, robot_name):
         # Predict the normalised joints and de-normalise them
         X_test_100 = prepare_robot_features(test_pos_100, is_scara=is_scara)
         q_norm_pred_100 = model.predict(X_test_100)
-        q_pred_phys_100 = denormalize_joints_batch(q_norm_pred_100, q_min, q_max)
+        q_pred_phys_100 = denormalize_joints(q_norm_pred_100, q_min, q_max)
 
         position_errors = []
         print(f"[Webots 4.B] Simulating {robot_name} on [{scale.upper()}] model...")
