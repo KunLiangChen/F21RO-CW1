@@ -1,20 +1,16 @@
+"""
+Task 2: raw FK dataset generation.
+
+Combines randomly sampled joint values with the TCP positions (x, y, z) computed by
+our forward kinematics (Task 1.B). Sits between joint sampling (gen_sample.py) and
+normalisation/splitting (preprocess.py); the output is not normalised yet.
+"""
+
 import numpy as np
 from scripts.gen_sample import generate_scara_samples, generate_ned_samples
 from scripts.scara_fk import scara_forward_kinematics
 from scripts.ned_fk import ned_forward_kinematics
 
-"""
-generate_rawdata.py
-
-Milestone 3 - Task B: FK Dataset Generation
-Responsible for generating the raw datasets by combining randomly sampled joint
-values with their corresponding end-effector Cartesian coordinates (x, y, z)
-computed via Forward Kinematics (FK).
-
-This script acts as the bridge between Task A (Joint Sampling) and Task C 
-(Normalisation & Splitting), providing unnormalized, physically accurate data 
-prior to preprocessing.
-"""
 
 def generate_raw_scara_data(num_samples: int, random_seed: int = None) -> np.ndarray:
     """

@@ -1,9 +1,8 @@
 """
-preprocess.py
+Task 2: normalisation and train/validation split.
 
-Milestone 3 - Task C: Normalisation & Splitting
-Responsible for normalizing joint values to [-1, 1], saving normalization 
-parameters (q_min, q_max), and splitting datasets into training and validation sets.
+Normalises the joint values to [-1, 1], saves the bounds (q_min, q_max) needed for
+de-normalisation to normalisation/<robot>.json, and splits datasets ~80/20.
 """
 
 import os

@@ -1,10 +1,11 @@
 """
-build_datasets.py
+Task 2: builds the final datasets for the SCARA and Ned arms.
 
-Milestone 3 - Task D: Dataset Scaling & Test Set Integration
-This is the master script that integrates Tasks A, B, and C. It generates the final 
-nested datasets (Small, Medium, Large) and independent Test Sets for both the 
-SCARA and Ned robotic arms.
+Runs the whole pipeline: joint sampling (gen_sample.py), FK (gen_rawdata.py),
+normalisation and split (preprocess.py). Produces nested small/medium/large
+train+validation sets and an independent test set per arm under datasets/.
+
+Run from the project root: python build_datasets.py
 """
 
 import os
@@ -93,7 +94,7 @@ def build_robot_datasets(robot_name: str, raw_data_func, header: str, seed: int 
         print(f"Saved {robot_name.upper()} {scale} set -> Train: {len(train_data)}, Val: {len(val_data)}")
 
 if __name__ == "__main__":
-    print("Initializing Milestone 3 Dataset Pipeline...")
+    print("Initializing Task 2 dataset pipeline...")
     
     # Build SCARA datasets
     scara_header = "q1,q2,q4,x,y,z"

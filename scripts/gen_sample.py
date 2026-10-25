@@ -1,9 +1,8 @@
 """
-gen_sample.py
+Task 2: joint sampling for the SCARA and Ned arms.
 
-Milestone 3 - Task A: Joint Sampling
-Responsible for generating valid and random joint configuration data for SCARA and Ned robotic arms. 
-This module does not include forward kinematics (FK) calculations and focuses solely on joint space constraints and sampling.
+Draws uniformly random joint values inside the allowed ranges and validates them.
+No forward kinematics here; only joint space constraints.
 """
 
 import numpy as np
