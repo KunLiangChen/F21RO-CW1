@@ -1,4 +1,4 @@
-# F20/21RO Coursework 1: ANN-based inverse kinematics for the Ned and SCARA arms
+# F21RO Coursework: ANN-based inverse kinematics for the Ned and SCARA arms
 
 A single neural network predicts the joint values of two arms (Niryo Ned and Epson SCARA)
 from a target TCP position (x, y, z). The training data is generated with our own forward
@@ -17,6 +17,10 @@ pip install -r requirements.txt
 All paths are relative: run the Python scripts from the project root. The Webots
 controllers find the project root themselves.
 
+Webots starts its controllers with the `python3` found in the `PATH` (or the interpreter set
+in Webots > Preferences > Python command). The Task 4.B evaluation and the demo load the
+trained models, so that interpreter must be the one where `requirements.txt` was installed.
+
 ## Project layout
 
 | Path | Content |
@@ -27,7 +31,10 @@ controllers find the project root themselves.
 | `scripts/gen_sample.py`, `scripts/gen_rawdata.py`, `scripts/preprocess.py`, `scripts/build_datasets.py` | Task 2 dataset creation |
 | `datasets/`, `normalisation/` | generated datasets and normalisation bounds (committed) |
 | `scripts/dataset_loader.py`, `scripts/train_ann.py` | Task 3 training |
-| `models/`, `logs/log_*.json` | trained models and training logs (committed) |
+| `scripts/evaluate_fk.py` | Task 4.A evaluation with FK |
+| `controllers/evaluate_webots/` | Task 4.B evaluation in Webots |
+| `controllers/nn_sphere_tracker/` | demo: the network moves the arm to the red target sphere |
+| `models/`, `logs/log_*.json`, `logs/eval_task4*.json` | trained models, training logs and evaluation results (committed) |
 | `worlds/`, `protos/` | Webots worlds and the Ned robot from the course repository |
 
 Order of the pipeline: `python scripts/build_datasets.py` (datasets), then `python scripts/train_ann.py`
@@ -39,8 +46,12 @@ reproduce them.
 Each arm has a Supervisor controller attached to `DEF ARM`; it commands the 3 active
 joints, waits until the position sensors settle, then reads the TCP pose (ARM frame).
 
-- SCARA: open `worlds/scara.wbt` (controller `scara_joint_ctrl`)
-- Ned: open `worlds/articulated.wbt` (controller `ned_joint_ctrl`)
+- SCARA: open `worlds/scara.wbt` and set the controller of `DEF ARM` to `scara_joint_ctrl`
+- Ned: open `worlds/articulated.wbt` and set the controller of `DEF ARM` to `ned_joint_ctrl`
+
+Both worlds start with the Task 4.B controller `evaluate_webots`; change it in the scene tree
+(`DEF ARM` > `controller`) to run the controllers of Task 1.A / 1.C, or to
+`nn_sphere_tracker` for the demo.
 
 Joint values are read from `logs/joint_input_scara.csv` / `logs/joint_input_ned.csv`
 (rows of `q1,q2,q4` / `q1,q2,q3`, physical units, optional header line). If the file is
@@ -60,7 +71,8 @@ at the zero configuration, e.g. `python scripts/ned_fk.py`.
 
 ```bash
 python scripts/evaluate_fk_webots.py generate   # 8 corner + 200 random joint sets per arm (seed 2026)
-# run worlds/scara.wbt and worlds/articulated.wbt once each in Webots (controllers write logs/tcp_measured_*.csv)
+# run worlds/scara.wbt and worlds/articulated.wbt once each in Webots with the controllers of Task 1.A
+# (they write logs/tcp_measured_*.csv)
 python scripts/evaluate_fk_webots.py report     # mean/std/max position error, saved to logs/fk_vs_webots.json
 ```
 
@@ -133,6 +145,38 @@ Selected hyperparameters and validation errors (normalised joint space):
 | small | 2000 / 500 | (128, 64) | relu | 0.001 | 0.005 | 2.88e-03 | 2.41e-02 |
 | medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 1.16e-03 | 1.84e-02 |
 | large | 16000 / 4000 | (256, 256, 128) | relu | 0.001 | 0.001 | 8.53e-04 | 1.30e-02 |
+
+
+## Task 4: evaluation
+
+```bash
+python scripts/evaluate_fk.py     # 4.A: all 500 test samples per arm, with FK; no simulator needed
+```
+
+4.A prints the 6 position-error and 18 joint-error statistics (mean and std) and saves them to
+`logs/eval_task4a_results.json`. The error of a revolute joint is the absolute value of the
+wrapped angular difference, so errors of opposite sign do not cancel in the mean; the error of the
+prismatic SCARA joint is the squared difference in m².
+
+4.B: open `worlds/scara.wbt` and `worlds/articulated.wbt` one after the other (the controller of
+`DEF ARM` is `evaluate_webots`) and run the simulation. For each model it moves the arm to the joint
+values predicted for the first 100 test samples, waits until the joints have settled, and compares
+the measured TCP with the test-set position. The results of both arms are merged into
+`logs/eval_task4b_results.json`, and the simulation pauses when it is done.
+
+Position error in mm (mean ± std), network trained on the training sets of the same size:
+
+| Model | Arm | 4.A: FK, 500 samples | 4.B: Webots, 100 samples |
+|---|---|---|---|
+| small | Ned | 9.73 ± 6.72 | 9.92 ± 8.01 |
+| small | SCARA | 4.86 ± 3.30 | 5.02 ± 3.62 |
+| medium | Ned | 6.96 ± 3.66 | 7.54 ± 3.78 |
+| medium | SCARA | 3.30 ± 2.00 | 3.41 ± 2.04 |
+| large | Ned | 5.44 ± 4.00 | 5.43 ± 3.89 |
+| large | SCARA | 2.80 ± 1.57 | 2.75 ± 1.47 |
+
+For the Ned, 7 of the first 100 test poses have the TCP below 0.12 m, where the hand touches the
+floor in Webots (see Task 1.C).
 
 ## Reused and AI-assisted code
 
