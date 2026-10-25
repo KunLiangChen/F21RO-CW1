@@ -6,10 +6,13 @@ kinematics, and the results are compared with the simulated arms in Webots.
 
 ## Requirements
 
-- Python 3, Webots R2023b
-- numpy and scikit-learn (the only third-party libraries used by the code that has to run;
-  the models were trained with scikit-learn 1.8.0)
-- matplotlib is only used by `visualize_training.py` to draw the poster figures
+- Python 3.11 or newer, Webots R2023b
+- numpy and scikit-learn, the only third-party libraries used (pinned in `requirements.txt`;
+  the models were trained with scikit-learn 1.8.0):
+
+```bash
+pip install -r requirements.txt
+```
 
 All paths are relative: run the Python scripts from the project root. The Webots
 controllers find the project root themselves.
@@ -23,7 +26,7 @@ controllers find the project root themselves.
 | `evaluate_fk_webots.py` | Task 1.C FK vs Webots |
 | `scripts/gen_sample.py`, `scripts/gen_rawdata.py`, `scripts/preprocess.py`, `build_datasets.py` | Task 2 dataset creation |
 | `datasets/`, `normalisation/` | generated datasets and normalisation bounds (committed) |
-| `scripts/dataset_loader.py`, `train_ann.py`, `visualize_training.py` | Task 3 training |
+| `scripts/dataset_loader.py`, `train_ann.py` | Task 3 training |
 | `models/`, `logs/log_*.json` | trained models and training logs (committed) |
 | `worlds/`, `protos/` | Webots worlds and the Ned robot from the course repository |
 
@@ -103,7 +106,6 @@ between Webots and FK (measured in Task 1.C).
 
 ```bash
 python train_ann.py          # trains the small, medium and large model
-python visualize_training.py # optional: loss curves and validation errors in plots/ (needs matplotlib)
 ```
 
 One `MLPRegressor` (scikit-learn) per dataset size serves both arms: the input is
@@ -115,7 +117,10 @@ Ned and SCARA sets of the same size merged into one (`scripts/dataset_loader.py`
   set and scores it on the validation set (`PredefinedSplit`). The final model is then
   trained on the training set only, so the validation metrics are not biased. The test
   sets are not used.
-- The network stops by itself when the training loss no longer improves; `max_iter` is 600.
+- Training stops by itself when the training loss has not improved by more than `tol=1e-7`
+  for 50 epochs in a row (`max_iter=3000` is never reached; the models train for 290 to
+  570 epochs). scikit-learn's default `tol=1e-4` is too coarse for losses of about 1e-3 and
+  stopped the training after 60 to 100 epochs, with up to 3x higher validation error.
 - Random seed: `random_state=42`. Results are reproducible with the same scikit-learn version.
 - Outputs: `models/model_<size>.pkl` and `logs/log_<size>.json` (best hyperparameters,
   validation metrics, loss curve). The `.pkl` files depend on the scikit-learn version
@@ -125,9 +130,9 @@ Selected hyperparameters and validation errors (normalised joint space):
 
 | Model | Train / val samples | Hidden layers | Activation | alpha | Learning rate | Val MSE | Val MAE |
 |---|---|---|---|---|---|---|---|
-| small | 2000 / 500 | (64, 64) | relu | 0.001 | 0.005 | 6.79e-03 | 4.61e-02 |
-| medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 3.80e-03 | 3.26e-02 |
-| large | 16000 / 4000 | (256, 256, 128) | relu | 0.001 | 0.001 | 1.62e-03 | 1.85e-02 |
+| small | 2000 / 500 | (128, 64) | relu | 0.001 | 0.005 | 2.88e-03 | 2.41e-02 |
+| medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 1.16e-03 | 1.84e-02 |
+| large | 16000 / 4000 | (256, 256, 128) | relu | 0.001 | 0.001 | 8.53e-04 | 1.30e-02 |
 
 ## Reused and AI-assisted code
 

@@ -104,3 +104,7 @@ logs/fk_vs_webots.json
 
 # Output of the self-test in scripts/preprocess.py
 test_normalisation/
+
+# Script that draws the poster figures; kept local, not part of the submission
+visualize_training.py
+plots/
