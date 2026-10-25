@@ -54,6 +54,8 @@ dist/
 
 # Keep these ignored unless you explicitly want to submit/share trained models
 *.pkl
+# ...except the three trained models, which are part of the submission
+!models/*.pkl
 *.pickle
 *.joblib
 *.npz
