@@ -18,7 +18,7 @@ TexturedBackgroundLight {
 Floor {
 }
 DEF TARGET Pose {
-  translation 0.5 0.1 0.1
+  translation 0.58 0.1 0.1
   children [
     Shape {
       appearance PBRAppearance {
