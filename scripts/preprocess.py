@@ -124,7 +124,7 @@ if __name__ == "__main__":
     dummy_raw_data = np.random.rand(100, 6) * 2.0  # Random values between 0 and 2
     
     # Test Normalization
-    normalized_data = normalize_joints(dummy_raw_data, robot_name="test_robot", save_dir="test_normalisation")
+    normalized_data, _ = normalize_joints(dummy_raw_data, robot_name="test_robot", save_dir="test_normalisation")
     
     # Verify the normalized joints are strictly bounded within [-1, 1]
     joints_norm = normalized_data[:, :3]
