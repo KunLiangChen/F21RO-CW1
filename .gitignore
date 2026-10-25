@@ -93,13 +93,8 @@ Thumbs.db
 *~
 
 # ------------------------------------------------------------
-# Dataset
-# ------------------------------------------------------------
-datasets/
-normalisation/
-
-# ------------------------------------------------------------
 # Generated Webots measurements (Task 1.A / 1.C)
+# datasets/ and normalisation/ are tracked on purpose: the submission has to ship them.
 # ------------------------------------------------------------
 logs/joint_input_*.csv
 logs/tcp_measured_*.csv
