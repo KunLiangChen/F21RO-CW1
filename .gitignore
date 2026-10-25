@@ -97,3 +97,10 @@ Thumbs.db
 # ------------------------------------------------------------
 datasets/
 normalisation/
+
+# ------------------------------------------------------------
+# Generated Webots measurements (Task 1.A / 1.C)
+# ------------------------------------------------------------
+logs/joint_input_*.csv
+logs/tcp_measured_*.csv
+logs/fk_vs_webots.json
