@@ -13,7 +13,7 @@ Workflow per dataset size:
     4. Save the model to models/model_<size>.pkl and the search result, metrics and loss
        curve to logs/log_<size>.json (used for the poster and video).
 
-Run from the project root: python train_ann.py
+Run from the project root: python scripts/train_ann.py
 """
 
 import os
@@ -28,7 +28,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV, PredefinedSplit
 
 # Make the project root importable
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
 
 from scripts.dataset_loader import get_combined_dataset
