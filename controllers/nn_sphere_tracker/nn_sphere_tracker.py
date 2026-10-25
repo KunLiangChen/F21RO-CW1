@@ -39,22 +39,22 @@ from scripts.webots_arm import detect_arm, make_probe, position_in_arm_frame
 ARM_DEF_NAME = "ARM"
 TARGET_DEF_NAME = "TARGET"
 MODEL_SCALE = "large"  # Options: 'small', 'medium', 'large'
+TEXT_COLOR = 0xFF0000  # red text in the 3D view
 REACH_TOLERANCE = 0.04  # [m] max distance between FK of the prediction and the target
 
 
 def show_overlay(robot, robot_type, target, error_m, reachable, reach_error):
     """
     Writes the demo status as text into the Webots 3D view (setLabel, positions are 0 to 1
-    from the top-left corner; colors are 0xRRGGBB).
+    from the top-left corner; colors are 0xRRGGBB). Everything is red so that it stands out.
     """
     status = "target reachable" if reachable else "target NOT reachable: holding the last pose"
-    status_color = 0x008000 if reachable else 0xC00000
-    robot.setLabel(0, f"{robot_type} - {MODEL_SCALE} model", 0.02, 0.02, 0.07, 0x000000, 0.0, "Arial")
+    robot.setLabel(0, f"{robot_type} - {MODEL_SCALE} model", 0.02, 0.02, 0.07, TEXT_COLOR, 0.0, "Arial")
     robot.setLabel(1, f"target  x={target[0]: .3f}  y={target[1]: .3f}  z={target[2]: .3f} m",
-                   0.02, 0.07, 0.06, 0x000000, 0.0, "Arial")
-    robot.setLabel(2, f"tracking error: {error_m * 1000.0:.1f} mm", 0.02, 0.12, 0.06, 0x000000, 0.0, "Arial")
+                   0.02, 0.07, 0.06, TEXT_COLOR, 0.0, "Arial")
+    robot.setLabel(2, f"tracking error: {error_m * 1000.0:.1f} mm", 0.02, 0.12, 0.06, TEXT_COLOR, 0.0, "Arial")
     robot.setLabel(3, f"{status} (FK check: {reach_error * 1000.0:.0f} mm)", 0.02, 0.17, 0.06,
-                   status_color, 0.0, "Arial")
+                   TEXT_COLOR, 0.0, "Arial")
 
 
 def main():
