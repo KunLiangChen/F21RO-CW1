@@ -11,6 +11,9 @@ No simulator needed. Per arm and model size:
          of opposite sign do not cancel in the mean
        - prismatic joint error: squared difference (d_true - d_pred)^2
 
+The position error is also given for the first 100 test samples, the ones Task 4.B
+runs in Webots, so that both evaluations can be compared on the same inputs.
+
 Results are printed and saved to logs/eval_task4a_results.json.
 Run from the project root after train_ann.py: python scripts/evaluate_fk.py
 """
@@ -30,6 +33,9 @@ from scripts.ned_fk import ned_forward_kinematics
 from scripts.scara_fk import scara_forward_kinematics
 from scripts.dataset_loader import load_csv_dataset, prepare_robot_features
 from scripts.preprocess import denormalize_joints
+
+# Task 4.B uses the first 100 test samples; the same subset is reported here
+REDUCED_TEST_SIZE = 100
 
 
 def load_normalisation_config(json_path):
@@ -138,6 +144,10 @@ def evaluate_model_on_robot(model, test_pos, test_joints_norm, is_scara, q_min, 
             "mean": float(np.mean(pos_errors)),
             "std": float(np.std(pos_errors))
         },
+        "position_error_first_100": {
+            "mean": float(np.mean(pos_errors[:REDUCED_TEST_SIZE])),
+            "std": float(np.std(pos_errors[:REDUCED_TEST_SIZE]))
+        },
         "joint_errors": joint_stats
     }
 
@@ -207,6 +217,17 @@ def main():
     for scale in scales:
         for bot_name in ["Ned", "SCARA"]:
             pos_stat = all_results[scale][bot_name]["position_error"]
+            print(f"{scale.capitalize():<12} | {bot_name:<8} | {pos_stat['mean']:<25.6e} | {pos_stat['std']:<15.6e}")
+
+    print("\n" + "=" * 72)
+    print(f" POSITION ERROR ON THE FIRST {REDUCED_TEST_SIZE} TEST SAMPLES (the samples of Task 4.B, metres)")
+    print("=" * 72)
+    print(f"{'Model Scale':<12} | {'Robot':<8} | {'Mean Position Error (m)':<25} | {'Std Dev (m)':<15}")
+    print("-" * 72)
+
+    for scale in scales:
+        for bot_name in ["Ned", "SCARA"]:
+            pos_stat = all_results[scale][bot_name]["position_error_first_100"]
             print(f"{scale.capitalize():<12} | {bot_name:<8} | {pos_stat['mean']:<25.6e} | {pos_stat['std']:<15.6e}")
 
     print("\n" + "=" * 85)
