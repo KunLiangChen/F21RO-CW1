@@ -19,6 +19,24 @@ the Supervisor object it is given, so it can be unit-tested with a mock.
 import os
 import numpy as np
 
+from scripts.scara_fk import SCARA_JOINT_LIMITS
+from scripts.ned_fk import NED_JOINT_LIMITS
+
+# Per arm: the 3 active motors in the order [q1, q2, q3 (q4 for SCARA)], their limits and the
+# constant position of the motors that are not used in this coursework.
+ARM_CONFIGS = {
+    "SCARA": {
+        "active_motors": ["base_arm_motor", "arm_motor", "shaft_linear_motor"],
+        "limits": SCARA_JOINT_LIMITS,
+        "fixed_motors": {"shaft_rotation_motor": 0.0},
+    },
+    "Ned": {
+        "active_motors": ["joint_1", "joint_2", "joint_3"],
+        "limits": NED_JOINT_LIMITS,
+        "fixed_motors": {"joint_4": 0.0, "joint_5": 0.0, "joint_6": 0.0},
+    },
+}
+
 SETTLE_TOLERANCE = 1e-3   # [rad] or [m]: max joint error that counts as "arrived"
 SETTLE_HOLD_STEPS = 5     # consecutive steps inside the tolerance before we trust it
 SETTLE_TIMEOUT_S = 10.0   # simulated seconds before giving up on a single move
@@ -109,6 +127,20 @@ class JointProbe:
         """TCP position in the ARM frame: translation part of the 4x4 pose of TCP relative to ARM."""
         pose = self.tcp.getPose(self.arm)
         return np.array([pose[3], pose[7], pose[11]])
+
+
+def detect_arm(robot):
+    """Returns "Ned" or "SCARA", depending on which motors the open world's arm has."""
+    for name, config in ARM_CONFIGS.items():
+        if robot.getDevice(config["active_motors"][0]) is not None:
+            return name
+    raise RuntimeError("Could not find the Ned or SCARA motors in the open Webots world.")
+
+
+def make_probe(robot, arm_name):
+    """Creates the JointProbe of the given arm ("SCARA" or "Ned")."""
+    config = ARM_CONFIGS[arm_name]
+    return JointProbe(robot, config["active_motors"], config["limits"], config["fixed_motors"])
 
 
 def load_joint_csv(path):

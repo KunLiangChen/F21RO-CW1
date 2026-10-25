@@ -13,11 +13,8 @@ from controller import Supervisor
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 sys.path.append(PROJECT_ROOT)
 
-from scripts.scara_fk import SCARA_JOINT_LIMITS
-from scripts.webots_arm import JointProbe, run_joint_controller
+from scripts.webots_arm import make_probe, run_joint_controller
 
-ACTIVE_MOTORS = ["base_arm_motor", "arm_motor", "shaft_linear_motor"]
-FIXED_MOTORS = {"shaft_rotation_motor": 0.0}
 
 # [q1, q2, q4]; q2 >= 0 (elbow-up), q4 in [-0.2, 0] (0 = shaft fully up)
 DEMO_POSES = [
@@ -29,7 +26,7 @@ DEMO_POSES = [
 
 def main():
     robot = Supervisor()
-    probe = JointProbe(robot, ACTIVE_MOTORS, SCARA_JOINT_LIMITS, FIXED_MOTORS)
+    probe = make_probe(robot, "SCARA")
     run_joint_controller(probe, "scara", "q1,q2,q4", DEMO_POSES, PROJECT_ROOT)
     robot.simulationSetMode(Supervisor.SIMULATION_MODE_PAUSE)
 
