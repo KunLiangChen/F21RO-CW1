@@ -64,11 +64,17 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
     custom_cv = PredefinedSplit(test_fold=split_indices)
 
     # 3. Base network: adam solver; MLPRegressor minimises the squared error.
-    # max_iter is only an upper limit: with the default tol / n_iter_no_change the training
-    # stops as soon as the training loss no longer improves (see epochs in logs/log_<size>.json).
+    # Stopping rule: training ends when the training loss has not improved by more than
+    # tol for n_iter_no_change epochs in a row; max_iter is only an upper limit.
+    # The scikit-learn defaults (tol=1e-4, n_iter_no_change=10) are too coarse here: the loss
+    # is about 1e-3, so an absolute tol of 1e-4 stops the training after 60 to 100 epochs
+    # while it is still improving. With tol=1e-7 and 50 epochs of patience the validation
+    # MSE drops by up to 3x (e.g. medium 3.8e-3 -> 1.2e-3), and training still takes seconds.
     base_mlp = MLPRegressor(
         solver='adam',
-        max_iter=600,
+        max_iter=3000,
+        tol=1e-7,
+        n_iter_no_change=50,
         random_state=42,
         early_stopping=False,  # no hold-out split inside the training; the grid search uses the validation set
         verbose=False
