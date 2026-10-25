@@ -178,6 +178,21 @@ Position error in mm (mean ± std), network trained on the training sets of the 
 For the Ned, 7 of the first 100 test poses have the TCP below 0.12 m, where the hand touches the
 floor in Webots (see Task 1.C).
 
+## Demo: the network follows the red target sphere
+
+Open `worlds/scara.wbt` or `worlds/articulated.wbt`, set the controller of `DEF ARM` to
+`nn_sphere_tracker`, run the simulation and drag the red sphere (`DEF TARGET`) with the mouse.
+Every simulation step the controller feeds the sphere position (ARM frame) to the trained
+network (`MODEL_SCALE` in the controller selects small, medium or large) and commands the joints.
+
+- The prediction is checked with our FK before it is used. If it does not reach the target within
+  4 cm, the sphere is outside what the network learned (for example out of reach) and the arm keeps
+  its last good pose instead of swinging to an extrapolated one; the console then prints
+  "Target reachable: NO".
+- Limitation of the Ned: close to its base axis, or when the sphere is moved from one side of the
+  robot to the other behind it, `joint_1` has to swing over a large part of its range (limit
+  -2.8 to 2.8 rad at 1 rad/s) and the network is least accurate there, so the arm lags or holds.
+
 ## Reused and AI-assisted code
 
 - From the course repository (Christian Dondrup): the Webots worlds (we set the arm's
