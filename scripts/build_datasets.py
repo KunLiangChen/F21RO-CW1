@@ -5,11 +5,18 @@ Runs the whole pipeline: joint sampling (gen_sample.py), FK (gen_rawdata.py),
 normalisation and split (preprocess.py). Produces nested small/medium/large
 train+validation sets and an independent test set per arm under datasets/.
 
-Run from the project root: python build_datasets.py
+Run from the project root: python scripts/build_datasets.py
 """
 
 import os
+import sys
 import numpy as np
+
+# Make the project root importable; datasets/ and normalisation/ are written there
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(PROJECT_ROOT)
+NORMALISATION_DIR = os.path.join(PROJECT_ROOT, "normalisation")
+
 from scripts.gen_rawdata import generate_raw_scara_data, generate_raw_ned_data
 from scripts.gen_sample import validate_scara_dataset, validate_ned_dataset, get_invalid_indices
 from scripts.preprocess import normalize_joints, split_train_val
@@ -65,8 +72,8 @@ def build_robot_datasets(robot_name: str, raw_data_func, header: str, seed: int 
     
     # Step 3: Normalise the train/validation pool (this writes normalisation/<robot>.json)
     # and normalise the test set with the very same bounds
-    train_val_norm, train_val_bounds = normalize_joints(train_val_raw, robot_name)
-    test_norm, _ = normalize_joints(test_raw, robot_name, bounds=train_val_bounds) 
+    train_val_norm, train_val_bounds = normalize_joints(train_val_raw, robot_name, save_dir=NORMALISATION_DIR)
+    test_norm, _ = normalize_joints(test_raw, robot_name, bounds=train_val_bounds, save_dir=NORMALISATION_DIR) 
 
     # Step 4: 80/20 train/validation split of the pool (Large set)
     large_train, large_val = split_train_val(train_val_norm, val_ratio=0.2, random_seed=seed)
@@ -79,7 +86,7 @@ def build_robot_datasets(robot_name: str, raw_data_func, header: str, seed: int 
     }
     
     # Step 6: Save everything under datasets/<robot>/
-    base_dir = f"datasets/{robot_name.lower()}"
+    base_dir = os.path.join(PROJECT_ROOT, "datasets", robot_name.lower())
     
     # Save test set
     save_to_csv(test_norm, f"{base_dir}/test.csv", header)
