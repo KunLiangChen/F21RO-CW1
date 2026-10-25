@@ -99,3 +99,6 @@ Thumbs.db
 logs/joint_input_*.csv
 logs/tcp_measured_*.csv
 logs/fk_vs_webots.json
+
+# Output of the self-test in scripts/preprocess.py
+test_normalisation/

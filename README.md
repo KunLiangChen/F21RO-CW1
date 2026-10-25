@@ -25,6 +25,19 @@ python evaluate_fk_webots.py report     # mean/std/max position error, saved to 
 
 ## Task 2: sampled joint ranges and normalisation
 
+Create the datasets (run from the project root; needs numpy and scikit-learn):
+
+```bash
+python build_datasets.py
+```
+
+This writes `datasets/<arm>/{small,medium,large}/{train,validation}.csv` and
+`datasets/<arm>/test.csv` (columns `q1,q2,q3|q4,x,y,z`, joints normalised to [-1, 1]) and the
+normalisation bounds `normalisation/<arm>.json`. The generated files are committed, so
+this only has to be rerun to reproduce them. Random seed: 42 (joint sampling and the
+80/20 split, for both arms). Small and medium are the first rows of large, so they are
+nested; the 500 test samples are taken out of the pool before the split.
+
 The joints are sampled uniformly from ranges that are narrower than the motor limits
 (`scripts/gen_sample.py`):
 
