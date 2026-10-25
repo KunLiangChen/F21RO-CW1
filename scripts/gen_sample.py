@@ -27,12 +27,14 @@ def generate_scara_samples(num_samples: int, random_seed: int = None) -> np.ndar
     q1 = np.random.uniform(-0.73, 0.73, num_samples)
     
     # q2 (arm_motor): second arm rotation [rad]
-    # elbow-config: [0.0, 0.83]
+    # elbow-up: only q2 >= 0 is sampled, so every TCP position has a single joint solution
+    # (the motor limit is [-0.83, 0.83])
     q2 = np.random.uniform(0.0, 0.83, num_samples)
     
     # q4 (shaft_linear_motor): vertical linear displacement [m]
-    # After testing in Webots, the simulation fails or becomes inaccurate when the shaft extends beyond -0.17. 
-    # So we've tightened the lower bound of the sampling to -0.17.
+    # Below q4 = -0.173 the shaft touches the Webots floor and cannot move further (the
+    # motor limit is -0.2): the measured TCP then differs from FK by 7 to 27 mm, against
+    # < 0.1 mm at -0.17. The lower bound of the sampling is therefore -0.17.
     q4 = np.random.uniform(-0.17, 0.0, num_samples)
     
     
@@ -64,7 +66,8 @@ def generate_ned_samples(num_samples: int, random_seed: int = None) -> np.ndarra
     q2 = np.random.uniform(-0.8, 0.8, num_samples)
     
     # q3 (joint_3): elbow pitch [rad]
-    # elbow-config: [0.0, 1.3]
+    # elbow-up: only q3 >= 0 is sampled, so every TCP position has a single joint solution
+    # (the motor limit is [-1.5, 1.3])
     q3 = np.random.uniform(0.0, 1.3, num_samples)
     
     samples = np.column_stack((q1, q2, q3))
