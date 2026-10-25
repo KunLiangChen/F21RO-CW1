@@ -7,10 +7,10 @@ For the SAME joint values we compare
 No neural network is involved, so the error is purely FK model error + settling error.
 
 Usage (run from the project root):
-    python evaluate_fk_webots.py generate   # writes logs/joint_input_{scara,ned}.csv
+    python scripts/evaluate_fk_webots.py generate   # writes logs/joint_input_{scara,ned}.csv
     # then run worlds/scara.wbt and worlds/articulated.wbt in Webots; the controllers
     # (scara_joint_ctrl / ned_joint_ctrl) write logs/tcp_measured_{scara,ned}.csv
-    python evaluate_fk_webots.py report     # prints statistics, saves logs/fk_vs_webots.json
+    python scripts/evaluate_fk_webots.py report     # prints statistics, saves logs/fk_vs_webots.json
 """
 
 import os
@@ -18,11 +18,15 @@ import sys
 import json
 import numpy as np
 
+# Make the project root importable; the controllers write logs/ there
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(PROJECT_ROOT)
+
 from scripts.gen_sample import generate_scara_samples, generate_ned_samples
 from scripts.scara_fk import scara_forward_kinematics
 from scripts.ned_fk import ned_forward_kinematics
 
-LOGS_DIR = "logs"
+LOGS_DIR = os.path.join(PROJECT_ROOT, "logs")
 NUM_RANDOM_SAMPLES = 200
 RANDOM_SEED = 2026   # fixed so every group member generates the same joint sets
 
