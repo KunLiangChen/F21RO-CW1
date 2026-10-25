@@ -8,7 +8,8 @@ Workflow per dataset size:
     1. Load the merged Ned + SCARA training and validation sets.
     2. Grid-search the hyperparameters of a scikit-learn MLPRegressor, scored on the
        validation set only (PredefinedSplit). The test sets are never touched.
-    3. Report validation MSE and MAE of the best model.
+    3. Train the best configuration on the training set only and report its validation
+       MSE and MAE (the validation set is never used for fitting).
     4. Save the model to models/model_<size>.pkl and the search result, metrics and loss
        curve to logs/log_<size>.json (used for the poster and video).
 
@@ -22,6 +23,7 @@ import time
 import pickle
 import numpy as np
 from sklearn.neural_network import MLPRegressor
+from sklearn.base import clone
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV, PredefinedSplit
 
@@ -81,6 +83,7 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
         param_grid=param_grid,
         cv=custom_cv,
         scoring='neg_mean_squared_error',
+        refit=False,  # the final model is trained on the training set only, see below
         n_jobs=-1,
         verbose=1
     )
@@ -88,10 +91,13 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
     grid_search.fit(X_all, y_all)
     elapsed_time = time.time() - start_time
 
-    # GridSearchCV refits the best configuration on train + validation (refit=True), so the
-    # validation metrics below are optimistic: the model has seen the validation data.
-    best_model = grid_search.best_estimator_
     best_params = grid_search.best_params_
+
+    # Train the best configuration on the training set alone. GridSearchCV's default
+    # refit would also fit on the validation data, which would make the validation
+    # metrics below optimistic.
+    best_model = clone(base_mlp).set_params(**best_params)
+    best_model.fit(X_train, y_train)
 
     print(f"\n[Results] Best Hyperparameters for [{size_label.upper()}]:")
     for param, val in best_params.items():
