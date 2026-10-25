@@ -37,7 +37,7 @@ Robot {
   supervisor TRUE
 }
 DEF ARM TeachingNed {
-  controller "evaluate_webots"
+  controller "nn_sphere_tracker"
   supervisor TRUE
   tcpSlot [
     DEF TCP Pose {

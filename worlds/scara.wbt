@@ -37,7 +37,7 @@ Robot {
   supervisor TRUE
 }
 DEF ARM ScaraT6 {
-  controller "evaluate_webots"
+  controller "nn_sphere_tracker"
   supervisor TRUE
   staticBase TRUE
   handSlot [
