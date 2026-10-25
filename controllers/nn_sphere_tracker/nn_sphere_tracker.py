@@ -6,8 +6,13 @@ the arm's controller has to be set to nn_sphere_tracker. In every simulation ste
     1. Read the TARGET sphere position in the ARM frame.
     2. Build the network input [is_scara, is_ned, x, y, z].
     3. Predict the normalised joints with the model selected by MODEL_SCALE.
-    4. De-normalise (clipped to the bounds) and command the motors.
-    5. Periodically print the measured TCP position and tracking error.
+    4. De-normalise (clipped to the bounds) and check the prediction with our FK: if the
+       predicted joints do not reach the target within REACH_TOLERANCE, the target is outside
+       what the network learned (e.g. out of reach); the arm then keeps its last good pose
+       instead of following a wild extrapolation.
+    5. Otherwise command the motors.
+    6. Show the target, the tracking error and the reachability in the 3D view (for the video)
+       and periodically print the measured TCP position and tracking error.
 """
 
 import os
@@ -35,6 +40,21 @@ ARM_DEF_NAME = "ARM"
 TARGET_DEF_NAME = "TARGET"
 MODEL_SCALE = "large"  # Options: 'small', 'medium', 'large'
 REACH_TOLERANCE = 0.04  # [m] max distance between FK of the prediction and the target
+
+
+def show_overlay(robot, robot_type, target, error_m, reachable, reach_error):
+    """
+    Writes the demo status as text into the Webots 3D view (setLabel, positions are 0 to 1
+    from the top-left corner; colors are 0xRRGGBB).
+    """
+    status = "target reachable" if reachable else "target NOT reachable: holding the last pose"
+    status_color = 0x008000 if reachable else 0xC00000
+    robot.setLabel(0, f"{robot_type} - {MODEL_SCALE} model", 0.02, 0.02, 0.07, 0x000000, 0.0, "Arial")
+    robot.setLabel(1, f"target  x={target[0]: .3f}  y={target[1]: .3f}  z={target[2]: .3f} m",
+                   0.02, 0.07, 0.06, 0x000000, 0.0, "Arial")
+    robot.setLabel(2, f"tracking error: {error_m * 1000.0:.1f} mm", 0.02, 0.12, 0.06, 0x000000, 0.0, "Arial")
+    robot.setLabel(3, f"{status} (FK check: {reach_error * 1000.0:.0f} mm)", 0.02, 0.17, 0.06,
+                   status_color, 0.0, "Arial")
 
 
 def main():
@@ -117,7 +137,12 @@ def main():
             for motor, q in zip(probe.motors, q_pred_phys):
                 motor.setPosition(float(q))
 
-        # F. Print Debug and Real-Time Error Log (Ideal for Video Recording)
+        # F. Measured TCP and tracking error, shown in the 3D view
+        tcpx, tcpy, tcpz = probe.measure_tcp()
+        error_m = math.sqrt((tcpx - tx)**2 + (tcpy - ty)**2 + (tcpz - tz)**2)
+        show_overlay(robot, robot_type, (tx, ty, tz), error_m, reachable, reach_error)
+
+        # G. Print Debug and Real-Time Error Log (Ideal for Video Recording)
         if now - last_print_time >= print_period:
             last_print_time = now
 
@@ -128,8 +153,6 @@ def main():
             print(f"Target reachable        : {'yes' if reachable else 'NO, holding the last pose'} "
                   f"(FK of the prediction is {reach_error * 1000.0:.1f} mm away)")
 
-            tcpx, tcpy, tcpz = probe.measure_tcp()
-            error_m = math.sqrt((tcpx - tx)**2 + (tcpy - ty)**2 + (tcpz - tz)**2)
             print(f"Measured TCP Position   : x={tcpx: .4f}, y={tcpy: .4f}, z={tcpz: .4f}")
             print(f"Real-Time Tracking Error: {error_m * 1000.0: .2f} mm")
             print("------------------------------------------------")
