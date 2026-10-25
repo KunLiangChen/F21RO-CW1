@@ -7,11 +7,12 @@ No simulator needed. Per arm and model size:
     3. Apply FK to the predicted joints to get (x, y, z)_pred.
     4. Compute error statistics (mean and std) over the test set:
        - position error: Euclidean distance between (x, y, z)_pred and (x, y, z)_true
-       - revolute joint error: wrapped angular difference
+       - revolute joint error: absolute value of the wrapped angular difference, so errors
+         of opposite sign do not cancel in the mean
        - prismatic joint error: squared difference (d_true - d_pred)^2
 
 Results are printed and saved to logs/eval_task4a_results.json.
-Run from the project root after train_ann.py: python evaluate_fk.py
+Run from the project root after train_ann.py: python scripts/evaluate_fk.py
 """
 
 import os
@@ -21,7 +22,7 @@ import pickle
 import numpy as np
 
 # Make the project root importable
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
 
 # FK from Task 1.B
@@ -135,7 +136,7 @@ def evaluate_model_on_robot(model, test_pos, test_joints_norm, is_scara, q_min, 
             j_err = (q_true_phys[:, j] - q_pred_phys[:, j]) ** 2
             unit = "m^2"
         else:
-            # Revolute joint: wrapped angular difference
+            # Revolute joint: absolute wrapped angular difference
             j_err = calculate_wrapped_angular_error(q_true_phys[:, j], q_pred_phys[:, j])
             unit = "rad"
 
@@ -193,7 +194,7 @@ def main():
     for scale in scales:
         model_path = os.path.join(models_dir, f"model_{scale}.pkl")
         if not os.path.exists(model_path):
-            print(f"[Error] Model file not found: {model_path}. Please run 'python train_ann.py' first.")
+            print(f"[Error] Model file not found: {model_path}. Please run 'python scripts/train_ann.py' first.")
             return
 
         with open(model_path, 'rb') as f:

@@ -99,7 +99,7 @@ def main():
     norm_path = os.path.join(norm_dir, config_file)
 
     if not os.path.exists(model_path):
-        print(f"ERROR: Model file missing at {model_path}. Please run train_ann.py first.")
+        print(f"ERROR: Model file missing at {model_path}. Please run scripts/train_ann.py first.")
         return
 
     with open(model_path, 'rb') as f:
