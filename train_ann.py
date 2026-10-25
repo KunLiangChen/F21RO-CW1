@@ -1,21 +1,18 @@
 """
-Main Neural Network Training and Hyperparameter Tuning Script for Task 3.
+Task 3: trains the small, medium and large inverse kinematics networks.
 
-This script executes the complete training pipeline for Artificial Neural Network (ANN)
-based Inverse Kinematics for both Niryo Ned and Epson SCARA robotic arms.
+One network serves both arms: input [is_scara, is_ned, x, y, z], output the three
+normalised joint values.
 
-Pipeline Workflow:
-    1. Loads merged Ned + SCARA training and validation datasets for Small, Medium, Large scales.
-    2. Uses explicit PredefinedSplit cross-validation to tune hyperparameters strictly on
-       the validation set (preventing data leakage and random split inconsistency).
-    3. Trains MLPRegressor models using scikit-learn.
-    4. Evaluates performance using Mean Squared Error (MSE) and Mean Absolute Error (MAE).
-    5. Saves trained serialized model files (.pkl) to 'models/' directory.
-    6. Saves hyperparameter selection history, evaluation metrics, and loss curves (.json)
-       to 'logs/' directory for visualization in Poster and Video deliverables.
+Workflow per dataset size:
+    1. Load the merged Ned + SCARA training and validation sets.
+    2. Grid-search the hyperparameters of a scikit-learn MLPRegressor, scored on the
+       validation set only (PredefinedSplit). The test sets are never touched.
+    3. Report validation MSE and MAE of the best model.
+    4. Save the model to models/model_<size>.pkl and the search result, metrics and loss
+       curve to logs/log_<size>.json (used for the poster and video).
 
-Coursework Reference:
-    F20/21RO Intelligent Robotics - Coursework 1 Task 3
+Run from the project root: python train_ann.py
 """
 
 import os
@@ -28,7 +25,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import GridSearchCV, PredefinedSplit
 
-# Ensure project root directory is in system path for relative imports
+# Make the project root importable
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(PROJECT_ROOT)
 
@@ -37,44 +34,45 @@ from scripts.dataset_loader import get_combined_dataset
 
 def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, logs_dir):
     """
-    Executes automated hyperparameter grid search and training for a specific dataset scale.
+    Runs the grid search and training for one dataset size.
 
     Args:
-        size_label (str): Scale size ('small', 'medium', or 'large').
-        param_grid (dict): Grid search hyperparameter space for scikit-learn MLPRegressor.
-        dataset_dir (str): Path to datasets directory.
-        models_dir (str): Path to save serialized models.
-        logs_dir (str): Path to save JSON training logs.
+        size_label (str): 'small', 'medium' or 'large'.
+        param_grid (dict): Hyperparameter grid for scikit-learn's MLPRegressor.
+        dataset_dir (str): Directory of the datasets.
+        models_dir (str): Directory the model is saved to.
+        logs_dir (str): Directory the JSON log is saved to.
     """
     print(f"\n========================================================")
     print(f"  Starting Training Pipeline for Scale: [{size_label.upper()}]")
     print(f"========================================================")
 
-    # 1. Load combined data
+    # 1. Load the merged data
     X_train, y_train, X_val, y_val = get_combined_dataset(dataset_dir, size=size_label)
     print(f"Dataset Loaded Successfully:")
     print(f"  - Training samples:   {X_train.shape[0]} (Input Dim: {X_train.shape[1]}, Target Dim: {y_train.shape[1]})")
     print(f"  - Validation samples: {X_val.shape[0]}")
 
-    # 2. Setup PredefinedSplit to strictly evaluate grid search on explicit Validation set
+    # 2. PredefinedSplit: every candidate is fitted on train and scored on the validation set
     X_all = np.vstack([X_train, X_val])
     y_all = np.vstack([y_train, y_val])
 
-    # Mark training samples as -1, validation samples as 0
+    # -1 = always in train, 0 = validation fold
     split_indices = np.concatenate([-np.ones(len(X_train)), np.zeros(len(X_val))])
     custom_cv = PredefinedSplit(test_fold=split_indices)
 
-    # 3. Define Base Multi-Layer Perceptron Regressor
-    # Using 'adam' solver and MSE loss metric as required for smooth kinematic mapping
+    # 3. Base network: adam solver; MLPRegressor minimises the squared error.
+    # max_iter is only an upper limit: with the default tol / n_iter_no_change the training
+    # stops as soon as the training loss no longer improves (see epochs in logs/log_<size>.json).
     base_mlp = MLPRegressor(
         solver='adam',
         max_iter=600,
         random_state=42,
-        early_stopping=False,  # Early stopping handled via GridSearch evaluation on validation split
+        early_stopping=False,  # no hold-out split inside the training; the grid search uses the validation set
         verbose=False
     )
 
-    # 4. Perform Automated Hyperparameter Grid Search
+    # 4. Hyperparameter grid search
     print(f"\n[Info] Launching GridSearchCV on Validation Split...")
     start_time = time.time()
     
@@ -90,6 +88,8 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
     grid_search.fit(X_all, y_all)
     elapsed_time = time.time() - start_time
 
+    # GridSearchCV refits the best configuration on train + validation (refit=True), so the
+    # validation metrics below are optimistic: the model has seen the validation data.
     best_model = grid_search.best_estimator_
     best_params = grid_search.best_params_
 
@@ -98,7 +98,7 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
         print(f"  - {param}: {val}")
     print(f"  - Grid search execution time: {elapsed_time:.2f} seconds")
 
-    # 5. Validate Best Model Metrics
+    # 5. Validation metrics of the best model
     y_val_pred = best_model.predict(X_val)
     val_mse = float(mean_squared_error(y_val, y_val_pred))
     val_mae = float(mean_absolute_error(y_val, y_val_pred))
@@ -107,14 +107,14 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
     print(f"  - Mean Squared Error (MSE): {val_mse:.6e}")
     print(f"  - Mean Absolute Error (MAE): {val_mae:.6e}")
 
-    # 6. Save Model (.pkl)
+    # 6. Save the model
     os.makedirs(models_dir, exist_ok=True)
     model_file_path = os.path.join(models_dir, f"model_{size_label}.pkl")
     with open(model_file_path, 'wb') as f:
         pickle.dump(best_model, f)
     print(f"\n[Saved] Model saved to: {os.path.relpath(model_file_path, PROJECT_ROOT)}")
 
-    # 7. Save Training Logs and Loss Curve (.json)
+    # 7. Save the training log and loss curve
     os.makedirs(logs_dir, exist_ok=True)
     log_file_path = os.path.join(logs_dir, f"log_{size_label}.json")
     
@@ -144,14 +144,13 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
 
 def main():
     """
-    Main execution pipeline configuring model scale hyperparameter search spaces.
+    Trains the three models; the grids grow with the dataset size.
     """
     dataset_dir = os.path.join(PROJECT_ROOT, 'datasets')
     models_dir = os.path.join(PROJECT_ROOT, 'models')
     logs_dir = os.path.join(PROJECT_ROOT, 'logs')
 
-    # Define hyperparameter grid for each model scale size
-    # Architectures expand in capacity to match increasing dataset sizes
+    # Hyperparameter grid per dataset size; larger datasets get larger networks
     param_grids = {
         "small": {
             "hidden_layer_sizes": [(64, 64), (128, 64)],
@@ -173,7 +172,7 @@ def main():
         }
     }
 
-    # Execute training sequence for all 3 scales
+    # Train all three sizes
     for size in ["small", "medium", "large"]:
         train_single_model_scale(
             size_label=size,
