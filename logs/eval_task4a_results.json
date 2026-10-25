@@ -1,0 +1,200 @@
+{
+    "small": {
+        "Ned": {
+            "position_error": {
+                "mean": 0.009732542303527075,
+                "std": 0.006720598207827321
+            },
+            "joint_errors": [
+                {
+                    "joint_index": 1,
+                    "joint_name": "joint_1",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.0461338529586792,
+                    "std": 0.09305908603956493
+                },
+                {
+                    "joint_index": 2,
+                    "joint_name": "joint_2",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.017843731594085695,
+                    "std": 0.014172982315348621
+                },
+                {
+                    "joint_index": 3,
+                    "joint_name": "joint_3",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.01380129086971283,
+                    "std": 0.01077718657486317
+                }
+            ]
+        },
+        "SCARA": {
+            "position_error": {
+                "mean": 0.004857329175079245,
+                "std": 0.0032999677207565395
+            },
+            "joint_errors": [
+                {
+                    "joint_index": 1,
+                    "joint_name": "base_arm_motor",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.012537978138923645,
+                    "std": 0.013106871834025473
+                },
+                {
+                    "joint_index": 2,
+                    "joint_name": "arm_motor",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.027730911642313002,
+                    "std": 0.03443770543985793
+                },
+                {
+                    "joint_index": 3,
+                    "joint_name": "shaft_linear_motor",
+                    "is_prismatic": true,
+                    "unit": "m^2",
+                    "mean": 6.09865371719106e-07,
+                    "std": 1.814686639403976e-06
+                }
+            ]
+        }
+    },
+    "medium": {
+        "Ned": {
+            "position_error": {
+                "mean": 0.006963687830726177,
+                "std": 0.003664418768580912
+            },
+            "joint_errors": [
+                {
+                    "joint_index": 1,
+                    "joint_name": "joint_1",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.033631782102584835,
+                    "std": 0.05038240451894956
+                },
+                {
+                    "joint_index": 2,
+                    "joint_name": "joint_2",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.012551523208618165,
+                    "std": 0.009394880681276953
+                },
+                {
+                    "joint_index": 3,
+                    "joint_name": "joint_3",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.010128661870956419,
+                    "std": 0.007444477559978761
+                }
+            ]
+        },
+        "SCARA": {
+            "position_error": {
+                "mean": 0.0033010791727412212,
+                "std": 0.0019988762906553667
+            },
+            "joint_errors": [
+                {
+                    "joint_index": 1,
+                    "joint_name": "base_arm_motor",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.00825649845719337,
+                    "std": 0.00871142905884533
+                },
+                {
+                    "joint_index": 2,
+                    "joint_name": "arm_motor",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.0192654666274786,
+                    "std": 0.01853790016119849
+                },
+                {
+                    "joint_index": 3,
+                    "joint_name": "shaft_linear_motor",
+                    "is_prismatic": true,
+                    "unit": "m^2",
+                    "mean": 4.880815994603725e-07,
+                    "std": 1.2185424780042593e-06
+                }
+            ]
+        }
+    },
+    "large": {
+        "Ned": {
+            "position_error": {
+                "mean": 0.005440859305145143,
+                "std": 0.004000596098155217
+            },
+            "joint_errors": [
+                {
+                    "joint_index": 1,
+                    "joint_name": "joint_1",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.02599189429283141,
+                    "std": 0.029281269748637092
+                },
+                {
+                    "joint_index": 2,
+                    "joint_name": "joint_2",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.006063374614715573,
+                    "std": 0.005062701730887882
+                },
+                {
+                    "joint_index": 3,
+                    "joint_name": "joint_3",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.005613151139020919,
+                    "std": 0.0043611005121243
+                }
+            ]
+        },
+        "SCARA": {
+            "position_error": {
+                "mean": 0.00279530082150691,
+                "std": 0.0015698495638613791
+            },
+            "joint_errors": [
+                {
+                    "joint_index": 1,
+                    "joint_name": "base_arm_motor",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.008870992249250411,
+                    "std": 0.0075392173299213
+                },
+                {
+                    "joint_index": 2,
+                    "joint_name": "arm_motor",
+                    "is_prismatic": false,
+                    "unit": "rad",
+                    "mean": 0.012618536807894706,
+                    "std": 0.0164158246338043
+                },
+                {
+                    "joint_index": 3,
+                    "joint_name": "shaft_linear_motor",
+                    "is_prismatic": true,
+                    "unit": "m^2",
+                    "mean": 3.807642127239764e-07,
+                    "std": 4.481342505916887e-07
+                }
+            ]
+        }
+    }
+}
