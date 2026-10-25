@@ -26,11 +26,11 @@ controllers find the project root themselves.
 | `evaluate_fk_webots.py` | Task 1.C FK vs Webots |
 | `scripts/gen_sample.py`, `scripts/gen_rawdata.py`, `scripts/preprocess.py`, `build_datasets.py` | Task 2 dataset creation |
 | `datasets/`, `normalisation/` | generated datasets and normalisation bounds (committed) |
-| `scripts/dataset_loader.py`, `train_ann.py` | Task 3 training |
+| `scripts/dataset_loader.py`, `scripts/train_ann.py` | Task 3 training |
 | `models/`, `logs/log_*.json` | trained models and training logs (committed) |
 | `worlds/`, `protos/` | Webots worlds and the Ned robot from the course repository |
 
-Order of the pipeline: `python build_datasets.py` (datasets), then `python train_ann.py`
+Order of the pipeline: `python build_datasets.py` (datasets), then `python scripts/train_ann.py`
 (models). Both outputs are already committed, so the scripts only have to be rerun to
 reproduce them.
 
@@ -105,7 +105,7 @@ between Webots and FK (measured in Task 1.C).
 ## Task 3: training the network
 
 ```bash
-python train_ann.py          # trains the small, medium and large model
+python scripts/train_ann.py  # trains the small, medium and large model
 ```
 
 One `MLPRegressor` (scikit-learn) per dataset size serves both arms: the input is
@@ -124,7 +124,7 @@ Ned and SCARA sets of the same size merged into one (`scripts/dataset_loader.py`
 - Random seed: `random_state=42`. Results are reproducible with the same scikit-learn version.
 - Outputs: `models/model_<size>.pkl` and `logs/log_<size>.json` (best hyperparameters,
   validation metrics, loss curve). The `.pkl` files depend on the scikit-learn version
-  (1.8.0 here); with a different version, rerun `python train_ann.py`.
+  (1.8.0 here); with a different version, rerun `python scripts/train_ann.py`.
 
 Selected hyperparameters and validation errors (normalised joint space):
 
