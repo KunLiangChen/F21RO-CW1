@@ -23,14 +23,14 @@ controllers find the project root themselves.
 |---|---|
 | `scripts/scara_fk.py`, `scripts/ned_fk.py` | Task 1.B forward kinematics |
 | `controllers/scara_joint_ctrl/`, `controllers/ned_joint_ctrl/`, `scripts/webots_arm.py` | Task 1.A Webots controllers |
-| `evaluate_fk_webots.py` | Task 1.C FK vs Webots |
-| `scripts/gen_sample.py`, `scripts/gen_rawdata.py`, `scripts/preprocess.py`, `build_datasets.py` | Task 2 dataset creation |
+| `scripts/evaluate_fk_webots.py` | Task 1.C FK vs Webots |
+| `scripts/gen_sample.py`, `scripts/gen_rawdata.py`, `scripts/preprocess.py`, `scripts/build_datasets.py` | Task 2 dataset creation |
 | `datasets/`, `normalisation/` | generated datasets and normalisation bounds (committed) |
 | `scripts/dataset_loader.py`, `scripts/train_ann.py` | Task 3 training |
 | `models/`, `logs/log_*.json` | trained models and training logs (committed) |
 | `worlds/`, `protos/` | Webots worlds and the Ned robot from the course repository |
 
-Order of the pipeline: `python build_datasets.py` (datasets), then `python scripts/train_ann.py`
+Order of the pipeline: `python scripts/build_datasets.py` (datasets), then `python scripts/train_ann.py`
 (models). Both outputs are already committed, so the scripts only have to be rerun to
 reproduce them.
 
@@ -59,9 +59,9 @@ at the zero configuration, e.g. `python scripts/ned_fk.py`.
 ## Task 1.C: FK vs Webots precision
 
 ```bash
-python evaluate_fk_webots.py generate   # 8 corner + 200 random joint sets per arm (seed 2026)
+python scripts/evaluate_fk_webots.py generate   # 8 corner + 200 random joint sets per arm (seed 2026)
 # run worlds/scara.wbt and worlds/articulated.wbt once each in Webots (controllers write logs/tcp_measured_*.csv)
-python evaluate_fk_webots.py report     # mean/std/max position error, saved to logs/fk_vs_webots.json
+python scripts/evaluate_fk_webots.py report     # mean/std/max position error, saved to logs/fk_vs_webots.json
 ```
 
 Result (208 poses per arm, position error between Webots and FK): SCARA mean 0.34 mm,
@@ -75,7 +75,7 @@ below 0.12 m, where the hand touches the floor. Without those 13 poses the Ned m
 Create the datasets (run from the project root; needs numpy and scikit-learn):
 
 ```bash
-python build_datasets.py
+python scripts/build_datasets.py
 ```
 
 This writes `datasets/<arm>/{small,medium,large}/{train,validation}.csv` and
