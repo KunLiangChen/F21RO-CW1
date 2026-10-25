@@ -1,8 +1,7 @@
 """
-Epson SCARA Robot Forward Kinematics (FK) Module.
+Task 1.B: forward kinematics of the Epson SCARA arm.
 
-This script implements the exact analytical forward kinematics for the Epson SCARA
-robot arm as specified in Coursework_1_2627.pdf (Task 1.B).
+Exact analytical FK built from the offsets given in Coursework_1_2627.pdf.
 
 Active Joint Vector Input:
     q = [q1, q2, q4]
@@ -21,7 +20,7 @@ import numpy as np
 # SCARA Active Joint Physical Limits (Min, Max) in radians / meters
 SCARA_JOINT_LIMITS = {
     'q1': (-0.73, 0.73),
-    'q2': (-0.83, 0.83),  #This would be [0,0.83] later
+    'q2': (-0.83, 0.83),  # sampling later restricts q2 to [0, 0.83] (elbow-up), see gen_sample.py
     'q4': (-0.20, 0.00)
 }
 
@@ -75,9 +74,8 @@ def scara_forward_kinematics(
     sin12 = np.sin(q12)
     
     # -------------------------------------------------------------------------
-    # Analytical FK Formula derivation:
-    # We avoid 4x4 Transformation Matrices to maximize batch-processing speed.
-    # The mathematical model used is:
+    # FK derivation: instead of 4x4 transformation matrices we expand the
+    # rotations algebraically, which is faster for batch dataset generation:
     # p = v0 + Rz(q1) * (v1 + Rz(q2) * v2)
     #
     # Where:
@@ -85,8 +83,7 @@ def scara_forward_kinematics(
     # v1 = [0.310,  0.005, -0.004 ]
     # v2 = [0.2545, -0.005, q4 - 0.034]
     #
-    # By expanding the rotation matrices Rz algebraically, we get the optimized 
-    # scalar operations below, saving substantial computational overhead.
+    # Expanding the Rz matrices gives the scalar expressions below.
     # -------------------------------------------------------------------------
      
     x = 0.060 + 0.310 * cos1 - 0.005 * sin1 + 0.2545 * cos12 + 0.005 * sin12
@@ -111,11 +108,11 @@ def check_joint_limits(q_arr: np.ndarray) -> None:
         raise ValueError(f"q4 values out of range [{q4_min}, {q4_max}]")
     
 if __name__ == '__main__':
-    # --- Unit Verification ---
+    # Quick self-check against hand-computed values
     print("=== SCARA Forward Kinematics Verification ===")
     
     # Test Case 1: Zero configuration [0.0, 0.0, 0.0]
-    q_zero = [0.7, 0.8, -0.1]
+    q_zero = [0.0, 0.0, 0.0]
     p_zero = scara_forward_kinematics(q_zero)
     print(f"TCP Position at Zero q={q_zero}:")
     print(f"  x: {p_zero[0]:.6f} m (Expected: 0.060 + 0.310 + 0.2545 = 0.6245)")

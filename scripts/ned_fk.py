@@ -1,8 +1,7 @@
 """
-Niryo Ned Robot Forward Kinematics (FK) Module.
+Task 1.B: forward kinematics of the Niryo Ned arm.
 
-This script calculates the analytical forward kinematics for the Niryo Ned robot
-arm as specified in Coursework_1_2627.pdf (Task 1.B).
+Analytical FK built from the offsets given in Coursework_1_2627.pdf.
 
 Active Joint Vector Input:
     q = [q1, q2, q3]
@@ -26,7 +25,7 @@ import numpy as np
 NED_JOINT_LIMITS = {
     'q1': (-2.8, 2.8),
     'q2': (-0.8, 0.8),
-    'q3': (-1.5, 1.3)  # Note: restricted to [0.0, 1.3] for elbow-up dataset generation
+    'q3': (-1.5, 1.3)  # sampling later restricts q3 to [0.0, 1.3] (elbow-up), see gen_sample.py
 }
 
 # Geometric Constant Offsets (Meters)
@@ -105,8 +104,8 @@ def check_joint_limits(q_arr: np.ndarray) -> None:
 
 
 if __name__ == '__main__':
-    # Unit Verification: Zero joint angles
-    p_zero = ned_forward_kinematics([-0.7854, 0.3504, 0.3554])
+    # Quick self-check against hand-computed values at the zero configuration
+    p_zero = ned_forward_kinematics([0.0, 0.0, 0.0])
     print("=== Ned Forward Kinematics Verification ===")
     print(f"TCP Position at Zero q=[0.0, 0.0, 0.0]:")
     print(f"  x: {p_zero[0]:.6f} m (Expected: 0.000000)")
