@@ -4,7 +4,8 @@ Task 4.B: evaluates the three trained networks in Webots.
 Supervisor controller for the arm in the open world (worlds/articulated.wbt or
 worlds/scara.wbt; the arm's controller has to be set to evaluate_webots). For the first
 100 test samples of that arm and each model size it predicts the joints, commands the
-motors, waits, and compares the TCP position measured by the supervisor with the
+motors, waits until the joints have settled (JointProbe in scripts/webots_arm.py), and
+compares the TCP position measured by the supervisor, in the ARM frame, with the
 test-set position.
 
 Mean and std of the position error are merged into logs/eval_task4b_results.json,
@@ -24,44 +25,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CONTROLLER_DIR, "..", ".."))
 sys.path.append(PROJECT_ROOT)
 
 from scripts.dataset_loader import load_csv_dataset, prepare_robot_features
-
-
-def get_official_tcp_node(supervisor):
-    """
-    Finds the TCP node with the lookup of the course tcp_pose.py: the global DEF "TCP"
-    first, otherwise the first node in ARM.tcpSlot.
-
-    Returns:
-        Node: The TCP node, or None if not found.
-    """
-    # 1. Global DEF
-    tcp = supervisor.getFromDef("TCP")
-    if tcp is not None:
-        return tcp
-
-    # 2. First node of ARM.tcpSlot
-    arm = supervisor.getFromDef("ARM")
-    if arm is not None:
-        tcp_slot = arm.getField("tcpSlot")
-        if tcp_slot is not None and tcp_slot.getCount() > 0:
-            return tcp_slot.getMFNode(0)
-
-    return None
-
-
-def detect_active_robot(supervisor):
-    """
-    Detects which arm the open world contains, from its motor names.
-
-    Returns:
-        str: "Ned" or "SCARA"
-    """
-    if supervisor.getDevice("joint_1") is not None:
-        return "Ned"
-    elif supervisor.getDevice("base_arm_motor") is not None:
-        return "SCARA"
-    else:
-        raise RuntimeError("Could not find Ned or SCARA motors in the active Webots world.")
+from scripts.webots_arm import detect_arm, make_probe
 
 
 def denormalize_joints_batch(q_norm_batch, q_min, q_max):
@@ -72,7 +36,7 @@ def denormalize_joints_batch(q_norm_batch, q_min, q_max):
     return q_min + ((q_norm_clamped + 1.0) / 2.0) * (q_max - q_min)
 
 
-def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
+def run_evaluation_for_active_robot(supervisor, robot_name):
     """
     Runs the Task 4.B simulation for the arm in the open world, for all three models.
 
@@ -97,36 +61,17 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
     test_pos_all, _ = load_csv_dataset(test_csv_path)
     test_pos_100 = test_pos_all[:100]
 
-    # 3. Motors of the three active joints
-    if is_scara:
-        m1 = supervisor.getDevice("base_arm_motor")
-        m2 = supervisor.getDevice("arm_motor")
-        m3 = supervisor.getDevice("shaft_linear_motor")
-    else:
-        m1 = supervisor.getDevice("joint_1")
-        m2 = supervisor.getDevice("joint_2")
-        m3 = supervisor.getDevice("joint_3")
+    # 3. Commands the joints and measures the TCP (also used by the Task 1.A controllers)
+    probe = make_probe(supervisor, robot_name)
+    print(f"[Webots 4.B] Evaluating {robot_name}.")
 
-    motors = [m1, m2, m3]
-
-    # 4. TCP node
-    tcp_node = get_official_tcp_node(supervisor)
-    if tcp_node is None:
-        raise RuntimeError(
-            f"ERROR: Could not locate TCP node for {robot_name}! "
-            f"Ensure either DEF 'TCP' or 'ARM.tcpSlot' exists in the world file."
-        )
-
-    print(f"[Webots 4.B] TCP Node successfully hooked for {robot_name}.")
-
-    SETTLE_STEPS = 35  # simulation steps to wait for the arm to settle
     scales = ["small", "medium", "large"]
     robot_results = {}
 
     for scale in scales:
         model_path = os.path.join(models_dir, f"model_{scale}.pkl")
         if not os.path.exists(model_path):
-            print(f"[Error] Model missing: {model_path}. Please run 'python train_ann.py' first.")
+            print(f"[Error] Model missing: {model_path}. Please run 'python scripts/train_ann.py' first.")
             return None
 
         with open(model_path, 'rb') as f:
@@ -141,20 +86,10 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
         print(f"[Webots 4.B] Simulating {robot_name} on [{scale.upper()}] model...")
 
         for i in range(100):
-            target_joints = q_pred_phys_100[i]
             true_pos = test_pos_100[i]
 
-            # Command the motors
-            for j in range(3):
-                motors[j].setPosition(float(target_joints[j]))
-
-            # Let the motors settle
-            for _ in range(SETTLE_STEPS):
-                if supervisor.step(time_step) == -1:
-                    break
-
-            # TCP position measured by the supervisor
-            sim_pos = np.array(tcp_node.getPosition(), dtype=np.float64)
+            # Command the joints, wait until they have settled and measure the TCP
+            sim_pos = probe.move_to(q_pred_phys_100[i])
 
             # Position error: Euclidean distance to the test-set position
             pos_err = np.linalg.norm(true_pos - sim_pos)
@@ -170,14 +105,13 @@ def run_evaluation_for_active_robot(supervisor, robot_name, time_step):
 
 def main():
     supervisor = Supervisor()
-    time_step = int(supervisor.getBasicTimeStep())
 
-    active_robot = detect_active_robot(supervisor)
+    active_robot = detect_arm(supervisor)
     print(f"\n========================================================")
     print(f"  Starting Task 4.B Webots Simulation for: [{active_robot}]")
     print(f"========================================================\n")
 
-    robot_results = run_evaluation_for_active_robot(supervisor, active_robot, time_step)
+    robot_results = run_evaluation_for_active_robot(supervisor, active_robot)
 
     if robot_results is not None:
         logs_dir = os.path.join(PROJECT_ROOT, "logs")
