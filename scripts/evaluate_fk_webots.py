@@ -22,7 +22,7 @@ import numpy as np
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
 
-from scripts.gen_sample import generate_scara_samples, generate_ned_samples
+from scripts.gen_sample import generate_scara_samples, generate_ned_samples, NED_MIN_TCP_Z
 from scripts.scara_fk import scara_forward_kinematics
 from scripts.ned_fk import ned_forward_kinematics
 
@@ -32,12 +32,15 @@ RANDOM_SEED = 2026   # fixed so every group member generates the same joint sets
 
 # Corners of the sampled joint box (same ranges as the training data): worst cases for FK.
 SCARA_CORNERS = [(q1, q2, q4) for q1 in (-0.73, 0.73) for q2 in (0.0, 0.83) for q4 in (-0.17, 0.0)]
-NED_CORNERS = [(q1, q2, q3) for q1 in (-2.8, 2.8) for q2 in (-0.8, 0.8) for q3 in (0.0, 1.3)]
+# Ned corners whose TCP would be below the floor limit of the dataset (NED_MIN_TCP_Z) are left out.
+NED_CORNERS = [(q1, q2, q3) for q1 in (-2.8, 2.8) for q2 in (-0.8, 0.8) for q3 in (0.0, 1.3)
+               if ned_forward_kinematics([q1, q2, q3])[2] >= NED_MIN_TCP_Z]
 
-# Ned only: below this TCP height the wrist/hand touches the Webots floor and is pushed
-# out of its kinematic pose (found by rerunning the same joint sets with the floor removed:
-# max error 7.8 mm -> 0.7 mm). It is a physics-contact artefact, not an FK error.
-NED_FLOOR_CONTACT_Z = 0.12
+# Ned only: below the dataset's floor limit the wrist/hand touches the Webots floor and is pushed
+# out of its kinematic pose (an earlier run without this limit: max error 7.8 mm, 0.7 mm with
+# the floor removed). It is a physics-contact artefact, not an FK error. The poses generated
+# here respect the limit, so this split only guards against the measured TCP being lower.
+NED_FLOOR_CONTACT_Z = NED_MIN_TCP_Z
 
 ARMS = {
     "scara": {"sampler": generate_scara_samples, "fk": scara_forward_kinematics,
