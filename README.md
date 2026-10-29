@@ -84,10 +84,14 @@ python scripts/evaluate_fk_webots.py generate   # 8 corner + 200 random joint se
 python scripts/evaluate_fk_webots.py report     # mean/std/max position error, saved to logs/fk_vs_webots.json
 ```
 
-Result (208 poses per arm, position error between Webots and FK): SCARA mean 0.34 mm,
-max 1.04 mm. Ned mean 0.42 mm, max 7.8 mm; the larger Ned errors only occur when the TCP is
-below 0.12 m, where the hand touches the floor. Without those 13 poses the Ned mean is
-0.21 mm and the maximum 0.70 mm.
+Result (position error between Webots and FK; 208 poses for the SCARA, 206 for the Ned
+because two corner poses below the Ned floor limit of Task 2 are left out): SCARA mean 0.34 mm,
+max 1.04 mm. Ned mean 0.20 mm, max 0.70 mm.
+
+Floor contact of the Ned: measured with the same joints at TCP heights from 0.08 to 0.18 m, the
+error is about 0.2 mm for z >= 0.12 m, 1.5 mm for 0.11 to 0.12 m and 5 to 8 mm below 0.10 m
+(the hand touches the floor). An earlier run without a floor limit had a Ned maximum of 7.8 mm
+for this reason; Task 2 now removes these poses.
 
 
 ## Task 2: sampled joint ranges and normalisation
@@ -118,9 +122,11 @@ The same ranges are the `q_min` / `q_max` used for normalisation (saved in
 `normalisation/<arm>.json` and needed to de-normalise the network output), so the output
 range [-1, 1] is fully used and the network cannot predict an elbow-down solution.
 
-All other joints use their full motor range. Poses with the TCP close to the floor are
-not removed: there the Ned hand can touch the floor too, which adds up to about 8 mm
-between Webots and FK (measured in Task 1.C).
+All other joints use their full motor range. For the Ned, poses whose TCP is below
+`NED_MIN_TCP_Z` = 0.12 m are rejected while sampling (rejection sampling with the FK of Task 1.B),
+because the hand then touches the Webots floor and does not reach the FK position (about 1.5 mm
+error at 0.11 to 0.12 m and up to 8 mm lower, see Task 1.C). The joint ranges, and so the
+normalisation bounds, stay the same; only the combinations that reach the floor are missing.
 
 ## Task 3: training the network
 
@@ -150,9 +156,9 @@ Selected hyperparameters and validation errors (normalised joint space):
 
 | Model | Train / val samples | Hidden layers | Activation | alpha | Learning rate | Val MSE | Val MAE |
 |---|---|---|---|---|---|---|---|
-| small | 2000 / 500 | (128, 64) | relu | 0.001 | 0.005 | 2.88e-03 | 2.41e-02 |
-| medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 1.16e-03 | 1.84e-02 |
-| large | 16000 / 4000 | (256, 256, 128) | relu | 0.001 | 0.001 | 8.53e-04 | 1.30e-02 |
+| small | 2000 / 500 | (128, 64) | relu | 0.0001 | 0.005 | 2.14e-03 | 2.63e-02 |
+| medium | 8000 / 2000 | (128, 128) | relu | 0.0001 | 0.001 | 8.52e-04 | 1.64e-02 |
+| large | 16000 / 4000 | (256, 256, 128) | relu | 0.0001 | 0.001 | 6.26e-04 | 1.06e-02 |
 
 
 ## Task 4.A: evaluation with FK
@@ -181,15 +187,15 @@ Position error in mm (mean ± std), network trained on the training sets of the 
 
 | Model | Arm | 4.A: FK, 500 samples | 4.A: FK, first 100 | 4.B: Webots, first 100 |
 |---|---|---|---|---|
-| small | Ned | 9.73 ± 6.72 | 10.00 ± 8.01 | 9.92 ± 8.01 |
-| small | SCARA | 4.86 ± 3.30 | 4.99 ± 3.59 | 5.02 ± 3.62 |
-| medium | Ned | 6.96 ± 3.66 | 7.44 ± 3.79 | 7.54 ± 3.78 |
-| medium | SCARA | 3.30 ± 2.00 | 3.35 ± 2.05 | 3.41 ± 2.04 |
-| large | Ned | 5.44 ± 4.00 | 5.37 ± 3.85 | 5.43 ± 3.89 |
-| large | SCARA | 2.80 ± 1.57 | 2.77 ± 1.50 | 2.75 ± 1.47 |
+| small | Ned | 10.11 ± 7.29 | 10.42 ± 7.32 | 10.44 ± 7.31 |
+| small | SCARA | 3.36 ± 2.12 | 3.47 ± 2.44 | 3.62 ± 2.45 |
+| medium | Ned | 9.12 ± 5.74 | 8.81 ± 5.75 | 8.78 ± 5.71 |
+| medium | SCARA | 1.50 ± 0.94 | 1.47 ± 0.88 | 1.54 ± 0.87 |
+| large | Ned | 4.88 ± 3.36 | 4.97 ± 3.11 | 4.91 ± 3.12 |
+| large | SCARA | 1.80 ± 1.13 | 1.85 ± 1.18 | 1.85 ± 1.13 |
 
-On the same 100 samples, 4.A and 4.B differ by at most 0.1 mm on average. For the Ned, 7 of these
-100 test poses have the TCP below 0.12 m, where the hand touches the floor in Webots (see Task 1.C).
+On the same 100 samples, 4.A and 4.B differ by at most 0.15 mm on average. No test pose of the
+Ned is below the floor limit of Task 2, so the arm does not touch the floor in Webots.
 
 ## Task 5 demo: the network follows the red target sphere
 
