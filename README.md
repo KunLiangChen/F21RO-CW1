@@ -146,30 +146,35 @@ Ned and SCARA sets of the same size merged into one (`scripts/dataset_loader.py`
 - The grid has 32 candidates per size (4 layer layouts, relu/tanh, alpha 1e-4/1e-3, learning
   rate 1e-3/3e-3; the layouts grow with the data size). Every candidate is trained with
   3 random seeds (42, 43, 44) and the scores are averaged, so a lucky initialisation does
-  not win (the seeds change the position error by about 1 mm for the small and medium models).
+  not win. The seed matters: with the same configuration, the validation position error of
+  the small model varies between 5.9 and 8.6 mm and one seed of the medium model had a 7x
+  larger SCARA shaft error than the others. The final network is therefore trained with each
+  of the 3 seeds and the one with the lowest validation position error is kept
+  (`final_model_seed` in the log).
 - The score of a candidate is the mean TCP position error on the validation set: the predicted
   joints are de-normalised and passed through the FK of Task 1.B, and the mean error of the
   Ned and the SCARA count equally. The plain validation MSE of the merged set is dominated by
-  the SCARA, which has a 3x larger MSE, and picked configurations that were worse for the Ned.
+  the SCARA, which has a 3x larger MSE, so it hardly looks at the Ned.
 - Training stops by itself when the training loss has not improved by more than `tol=1e-7`
-  for 50 epochs in a row (`max_iter=3000` is never reached; the models train for 380 to
+  for 50 epochs in a row (`max_iter=3000` is never reached; the models train for 210 to
   1600 epochs). scikit-learn's default `tol=1e-4` is too coarse for losses of about 1e-3 and
   stopped the training after 60 to 100 epochs, with up to 3x higher validation error.
-- Random seed: the final models use `random_state=42`. Results are reproducible with the same
-  scikit-learn version.
+- Random seeds: 42, 43, 44 (see above). Results are reproducible with the same scikit-learn version.
 - Outputs: `models/model_<size>.pkl` and `logs/log_<size>.json` (best hyperparameters,
   validation metrics, the mean position error of all 32 candidates, loss curve). The `.pkl` files depend on the scikit-learn version
   (1.8.0 here); with a different version, rerun `python scripts/train_ann.py`.
 
 Selected hyperparameters and validation errors (normalised joint space):
 
-| Model | Train / val samples | Hidden layers | Activation | alpha | Learning rate | Val MSE | Val MAE | Val position error |
-|---|---|---|---|---|---|---|---|---|
-| small | 2000 / 500 | (128, 128) | relu | 0.0001 | 0.001 | 2.04e-03 | 2.17e-02 | 5.89 mm |
-| medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 1.41e-03 | 1.99e-02 | 5.16 mm |
-| large | 16000 / 4000 | (256, 256, 128) | relu | 0.0001 | 0.001 | 6.26e-04 | 1.06e-02 | 3.31 mm |
+| Model | Train / val samples | Hidden layers | Activation | alpha | Learning rate | Seed | Val MSE | Val MAE | Val position error |
+|---|---|---|---|---|---|---|---|---|---|
+| small | 2000 / 500 | (128, 128) | relu | 0.0001 | 0.001 | 42 | 2.04e-03 | 2.17e-02 | 5.89 mm |
+| medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 43 | 7.72e-04 | 1.50e-02 | 4.08 mm |
+| large | 16000 / 4000 | (256, 256, 128) | relu | 0.0001 | 0.001 | 43 | 9.61e-04 | 1.54e-02 | 3.03 mm |
 
 (The position error is the mean of the Ned and the SCARA error, the quantity the search minimises.)
+The seed is chosen by this position error, not by the MSE, so the MSE of a model is not
+necessarily the lowest of its three seeds (large: 9.61e-04 with seed 43, 6.26e-04 with seed 42).
 
 
 ## Task 4.A: evaluation with FK
@@ -200,12 +205,12 @@ Position error in mm (mean ± std), network trained on the training sets of the 
 |---|---|---|---|---|
 | small | Ned | 8.39 ± 6.01 | 9.39 ± 6.43 | 9.42 ± 6.43 |
 | small | SCARA | 3.31 ± 1.93 | 3.34 ± 1.86 | 3.37 ± 1.85 |
-| medium | Ned | 7.56 ± 4.57 | 7.96 ± 4.77 | 7.94 ± 4.73 |
-| medium | SCARA | 2.95 ± 1.25 | 2.97 ± 1.21 | 2.88 ± 1.21 |
-| large | Ned | 4.88 ± 3.36 | 4.97 ± 3.11 | 4.91 ± 3.12 |
-| large | SCARA | 1.80 ± 1.13 | 1.85 ± 1.18 | 1.85 ± 1.13 |
+| medium | Ned | 5.91 ± 4.24 | 5.96 ± 4.37 | 5.97 ± 4.37 |
+| medium | SCARA | 2.37 ± 1.43 | 2.49 ± 1.41 | 2.56 ± 1.44 |
+| large | Ned | 4.46 ± 3.26 | 4.50 ± 3.18 | 4.43 ± 3.13 |
+| large | SCARA | 1.82 ± 1.00 | 1.81 ± 0.86 | 1.90 ± 0.81 |
 
-On the same 100 samples, 4.A and 4.B differ by at most 0.15 mm on average. No test pose of the
+On the same 100 samples, 4.A and 4.B differ by at most 0.1 mm on average. No test pose of the
 Ned is below the floor limit of Task 2, so the arm does not touch the floor in Webots.
 
 ## Task 5 demo: the network follows the red target sphere
