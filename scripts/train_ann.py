@@ -107,8 +107,9 @@ def train_single_model_scale(size_label, param_grid, dataset_dir, models_dir, lo
     # tol for n_iter_no_change epochs in a row; max_iter is only an upper limit.
     # The scikit-learn defaults (tol=1e-4, n_iter_no_change=10) are too coarse here: the loss
     # is about 1e-3, so an absolute tol of 1e-4 stops the training after 60 to 100 epochs
-    # while it is still improving. With tol=1e-7 and 50 epochs of patience the validation
-    # MSE drops by up to 3x (e.g. medium 3.8e-3 -> 1.2e-3), and training still takes seconds.
+    # while it is still improving. With tol=1e-7 and 50 epochs of patience the networks train
+    # for hundreds of epochs, which lowered the validation error clearly, and training still
+    # takes seconds to a minute.
     base_mlp = MLPRegressor(
         solver='adam',
         max_iter=3000,
