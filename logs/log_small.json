@@ -446,12 +446,13 @@
         43,
         44
     ],
+    "final_model_seed": 42,
     "validation_metrics": {
         "mse": 0.0020425086840987206,
         "mae": 0.021676599979400635,
         "mean_position_error_m": 0.0058887950032498575
     },
-    "training_time_seconds": 35.68,
+    "training_time_seconds": 27.86,
     "loss_curve": [
         0.15851393342018127,
         0.14299629628658295,
