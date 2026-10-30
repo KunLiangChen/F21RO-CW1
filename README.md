@@ -226,6 +226,9 @@ network (`MODEL_SCALE` in the controller selects small, medium or large) and com
   4 cm, the sphere is outside what the network learned (for example out of reach) and the arm keeps
   its last good pose instead of swinging to an extrapolated one; the console then prints
   "Target reachable: NO".
+- A Ned target below z = 0.12 m (`NED_MIN_TCP_Z`, the floor limit of the Ned data) is refused the
+  same way, because the hand would touch the floor and the network never saw such poses; the 3D
+  view then says "target below floor limit".
 - Limitation of the Ned: close to its base axis, or when the sphere is moved from one side of the
   robot to the other behind it, `joint_1` has to swing over a large part of its range (limit
   -2.8 to 2.8 rad at 1 rad/s) and the network is least accurate there, so the arm lags or holds.

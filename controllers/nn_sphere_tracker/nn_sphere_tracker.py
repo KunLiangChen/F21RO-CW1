@@ -9,7 +9,9 @@ the arm's controller has to be set to nn_sphere_tracker. In every simulation ste
     4. De-normalise (clipped to the bounds) and check the prediction with our FK: if the
        predicted joints do not reach the target within REACH_TOLERANCE, the target is outside
        what the network learned (e.g. out of reach); the arm then keeps its last good pose
-       instead of following a wild extrapolation.
+       instead of following a wild extrapolation. A Ned target below NED_MIN_TCP_Z (the
+       floor limit of the Ned training data) is refused the same way: the hand would touch
+       the floor, and the network never saw such poses.
     5. Otherwise command the motors.
     6. Show the target, the tracking error and the reachability in the 3D view (for the video)
        and periodically print the measured TCP position and tracking error.
@@ -28,6 +30,7 @@ CONTROLLER_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CONTROLLER_DIR, "..", ".."))
 sys.path.append(PROJECT_ROOT)
 
+from scripts.gen_sample import NED_MIN_TCP_Z
 from scripts.ned_fk import ned_forward_kinematics
 from scripts.preprocess import denormalize_joints
 from scripts.scara_fk import scara_forward_kinematics
@@ -43,12 +46,11 @@ TEXT_COLOR = 0xFF0000  # red text in the 3D view
 REACH_TOLERANCE = 0.04  # [m] max distance between FK of the prediction and the target
 
 
-def show_overlay(robot, robot_type, target, error_m, reachable, reach_error):
+def show_overlay(robot, robot_type, target, error_m, status, reach_error):
     """
     Writes the demo status as text into the Webots 3D view (setLabel, positions are 0 to 1
     from the top-left corner; colors are 0xRRGGBB). Everything is red so that it stands out.
     """
-    status = "target reachable" if reachable else "target NOT reachable: holding the last pose"
     robot.setLabel(0, f"{robot_type} - {MODEL_SCALE} model", 0.02, 0.02, 0.07, TEXT_COLOR, 0.0, "Arial")
     robot.setLabel(1, f"target  x={target[0]: .3f}  y={target[1]: .3f}  z={target[2]: .3f} m",
                    0.02, 0.07, 0.06, TEXT_COLOR, 0.0, "Arial")
@@ -132,7 +134,14 @@ def main():
 
         # E. Only follow predictions that FK confirms; otherwise keep the last good pose
         reach_error = np.linalg.norm(forward_kinematics(q_pred_phys) - np.array([tx, ty, tz]))
-        reachable = reach_error <= REACH_TOLERANCE
+        below_floor = (not is_scara) and tz < NED_MIN_TCP_Z
+        reachable = (reach_error <= REACH_TOLERANCE) and not below_floor
+        if reachable:
+            status = "target reachable"
+        elif below_floor:
+            status = f"target below floor limit (z<{NED_MIN_TCP_Z:.2f} m): holding pose"
+        else:
+            status = "target NOT reachable: holding the last pose"
         if reachable:
             for motor, q in zip(probe.motors, q_pred_phys):
                 motor.setPosition(float(q))
@@ -140,7 +149,7 @@ def main():
         # F. Measured TCP and tracking error, shown in the 3D view
         tcpx, tcpy, tcpz = probe.measure_tcp()
         error_m = math.sqrt((tcpx - tx)**2 + (tcpy - ty)**2 + (tcpz - tz)**2)
-        show_overlay(robot, robot_type, (tx, ty, tz), error_m, reachable, reach_error)
+        show_overlay(robot, robot_type, (tx, ty, tz), error_m, status, reach_error)
 
         # G. Print Debug and Real-Time Error Log (Ideal for Video Recording)
         if now - last_print_time >= print_period:
@@ -150,7 +159,7 @@ def main():
             print(f"[{robot_type.upper()} Real-Time ANN Tracker]")
             print(f"Target Pose (ARM Frame) : x={tx: .4f}, y={ty: .4f}, z={tz: .4f}")
             print(f"Predicted Joints (Phys) : q1={q_pred_phys[0]: .4f}, q2={q_pred_phys[1]: .4f}, q3={q_pred_phys[2]: .4f}")
-            print(f"Target reachable        : {'yes' if reachable else 'NO, holding the last pose'} "
+            print(f"Target reachable        : {status} "
                   f"(FK of the prediction is {reach_error * 1000.0:.1f} mm away)")
 
             print(f"Measured TCP Position   : x={tcpx: .4f}, y={tcpy: .4f}, z={tcpz: .4f}")
