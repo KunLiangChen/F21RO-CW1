@@ -143,22 +143,33 @@ Ned and SCARA sets of the same size merged into one (`scripts/dataset_loader.py`
   set and scores it on the validation set (`PredefinedSplit`). The final model is then
   trained on the training set only, so the validation metrics are not biased. The test
   sets are not used.
+- The grid has 32 candidates per size (4 layer layouts, relu/tanh, alpha 1e-4/1e-3, learning
+  rate 1e-3/3e-3; the layouts grow with the data size). Every candidate is trained with
+  3 random seeds (42, 43, 44) and the scores are averaged, so a lucky initialisation does
+  not win (the seeds change the position error by about 1 mm for the small and medium models).
+- The score of a candidate is the mean TCP position error on the validation set: the predicted
+  joints are de-normalised and passed through the FK of Task 1.B, and the mean error of the
+  Ned and the SCARA count equally. The plain validation MSE of the merged set is dominated by
+  the SCARA, which has a 3x larger MSE, and picked configurations that were worse for the Ned.
 - Training stops by itself when the training loss has not improved by more than `tol=1e-7`
-  for 50 epochs in a row (`max_iter=3000` is never reached; the models train for 290 to
-  570 epochs). scikit-learn's default `tol=1e-4` is too coarse for losses of about 1e-3 and
+  for 50 epochs in a row (`max_iter=3000` is never reached; the models train for 380 to
+  1600 epochs). scikit-learn's default `tol=1e-4` is too coarse for losses of about 1e-3 and
   stopped the training after 60 to 100 epochs, with up to 3x higher validation error.
-- Random seed: `random_state=42`. Results are reproducible with the same scikit-learn version.
+- Random seed: the final models use `random_state=42`. Results are reproducible with the same
+  scikit-learn version.
 - Outputs: `models/model_<size>.pkl` and `logs/log_<size>.json` (best hyperparameters,
-  validation metrics, loss curve). The `.pkl` files depend on the scikit-learn version
+  validation metrics, the mean position error of all 32 candidates, loss curve). The `.pkl` files depend on the scikit-learn version
   (1.8.0 here); with a different version, rerun `python scripts/train_ann.py`.
 
 Selected hyperparameters and validation errors (normalised joint space):
 
-| Model | Train / val samples | Hidden layers | Activation | alpha | Learning rate | Val MSE | Val MAE |
-|---|---|---|---|---|---|---|---|
-| small | 2000 / 500 | (128, 64) | relu | 0.0001 | 0.005 | 2.14e-03 | 2.63e-02 |
-| medium | 8000 / 2000 | (128, 128) | relu | 0.0001 | 0.001 | 8.52e-04 | 1.64e-02 |
-| large | 16000 / 4000 | (256, 256, 128) | relu | 0.0001 | 0.001 | 6.26e-04 | 1.06e-02 |
+| Model | Train / val samples | Hidden layers | Activation | alpha | Learning rate | Val MSE | Val MAE | Val position error |
+|---|---|---|---|---|---|---|---|---|
+| small | 2000 / 500 | (128, 128) | relu | 0.0001 | 0.001 | 2.04e-03 | 2.17e-02 | 5.89 mm |
+| medium | 8000 / 2000 | (128, 128, 64) | relu | 0.0001 | 0.001 | 1.41e-03 | 1.99e-02 | 5.16 mm |
+| large | 16000 / 4000 | (256, 256, 128) | relu | 0.0001 | 0.001 | 6.26e-04 | 1.06e-02 | 3.31 mm |
+
+(The position error is the mean of the Ned and the SCARA error, the quantity the search minimises.)
 
 
 ## Task 4.A: evaluation with FK
@@ -187,10 +198,10 @@ Position error in mm (mean ± std), network trained on the training sets of the 
 
 | Model | Arm | 4.A: FK, 500 samples | 4.A: FK, first 100 | 4.B: Webots, first 100 |
 |---|---|---|---|---|
-| small | Ned | 10.11 ± 7.29 | 10.42 ± 7.32 | 10.44 ± 7.31 |
-| small | SCARA | 3.36 ± 2.12 | 3.47 ± 2.44 | 3.62 ± 2.45 |
-| medium | Ned | 9.12 ± 5.74 | 8.81 ± 5.75 | 8.78 ± 5.71 |
-| medium | SCARA | 1.50 ± 0.94 | 1.47 ± 0.88 | 1.54 ± 0.87 |
+| small | Ned | 8.39 ± 6.01 | 9.39 ± 6.43 | 9.42 ± 6.43 |
+| small | SCARA | 3.31 ± 1.93 | 3.34 ± 1.86 | 3.37 ± 1.85 |
+| medium | Ned | 7.56 ± 4.57 | 7.96 ± 4.77 | 7.94 ± 4.73 |
+| medium | SCARA | 2.95 ± 1.25 | 2.97 ± 1.21 | 2.88 ± 1.21 |
 | large | Ned | 4.88 ± 3.36 | 4.97 ± 3.11 | 4.91 ± 3.12 |
 | large | SCARA | 1.80 ± 1.13 | 1.85 ± 1.18 | 1.85 ± 1.13 |
 
